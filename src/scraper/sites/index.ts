@@ -4,6 +4,7 @@ import { aniwatchStrategy } from "./aniwatch";
 import { aniwaveStrategy } from "./aniwave";
 import { hianimeStrategy } from "./hianime";
 import { reanimeStrategy } from "./reanime";
+import { kaaStrategy } from "./kaa";
 
 export const strategies = [
 	anikotoStrategy,
@@ -12,4 +13,5 @@ export const strategies = [
 	hianimeStrategy,
 	aniwatchStrategy,
 	reanimeStrategy,
+    kaaStrategy,
 ];
