@@ -25,12 +25,12 @@ const getEpisodeInfo = (): { episode: string; name: string | null } | null => {
 
 export const miruroStrategy: AnimeSite = {
 	domains: [
-	"www.miruro.tv",
-	"www.miruro.to",
-	"www.miruro.cx",
-	"www.miruro.bz",
-	"barelystarted.miruro.tv",
-],
+		"www.miruro.tv",
+		"www.miruro.to",
+		"www.miruro.cx",
+		"www.miruro.bz",
+		"barelystarted.miruro.tv",
+	],
 	iframe_src: ["strm.cx"],
 
 	getAnimeMetadata: () => {
