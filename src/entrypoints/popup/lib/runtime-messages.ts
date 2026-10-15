@@ -19,3 +19,7 @@ export function logoutDiscord(): Promise<SimpleResponse> {
 export function setActivityEnabled(enabled: boolean): Promise<SimpleResponse> {
 	return browser.runtime.sendMessage({ type: "SET_ACTIVITY_ENABLED", enabled });
 }
+
+export function setPrivacyEnabled(enabled: boolean): Promise<SimpleResponse> {
+	return browser.runtime.sendMessage({ type: "SET_PRIVACY_ENABLED", enabled });
+}

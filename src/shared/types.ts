@@ -49,6 +49,7 @@ export interface StatusResponse {
 	hasToken: boolean;
 	isGatewayReady: boolean;
 	activityEnabled?: boolean;
+	privacyEnabled?: boolean;
 	authError?: string | null;
 	currentAnime: AnimeState | null;
 }

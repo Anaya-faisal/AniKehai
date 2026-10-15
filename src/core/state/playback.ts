@@ -18,9 +18,14 @@ let lastBroadcast = {
 };
 
 export let activityEnabled = true;
+export let privacyEnabled = false;
 
 export function setActivityEnabledFlag(enabled: boolean) {
 	activityEnabled = enabled;
+}
+
+export function setPrivacyEnabledFlag(enabled: boolean) {
+	privacyEnabled = enabled;
 }
 
 export function clearAnimeState() {
