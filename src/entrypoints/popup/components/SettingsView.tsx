@@ -23,6 +23,15 @@ export function SettingsView({ status }: SettingsViewProps) {
 
 			<div className="rounded-2xl border border-white/10 bg-panel-2/60 px-3.5">
 				<ToggleSwitch
+					checked={status.privacyEnabled}
+					onChange={status.togglePrivacy}
+					label="Privacy"
+					description="Turn on to hide which anime you're watching."
+				/>
+			</div>
+
+			<div className="rounded-2xl border border-white/10 bg-panel-2/60 px-3.5">
+				<ToggleSwitch
 					checked={status.activityEnabled}
 					onChange={status.toggleActivity}
 					label="Broadcast to Discord"

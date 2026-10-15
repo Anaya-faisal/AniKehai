@@ -10,7 +10,9 @@ import {
 	commitBroadcast,
 	currentAnimeState,
 	evaluateDiscordUpdate,
+	privacyEnabled,
 	setActivityEnabledFlag,
+	setPrivacyEnabledFlag,
 } from "../core/state/playback";
 import { RESET_ACTIVITY_TIMEOUT } from "../shared/constants";
 import { logger } from "../shared/logger";
@@ -21,11 +23,16 @@ export default defineBackground(() => {
 
 	let activityTimeout: ReturnType<typeof setTimeout> | null = null;
 
-	browser.storage.local.get("activity_enabled").then((storage) => {
-		if (typeof storage.activity_enabled === "boolean") {
-			setActivityEnabledFlag(storage.activity_enabled);
-		}
-	});
+	browser.storage.local
+		.get(["activity_enabled", "privacy_enabled"])
+		.then((storage) => {
+			if (typeof storage.activity_enabled === "boolean") {
+				setActivityEnabledFlag(storage.activity_enabled);
+			}
+			if (typeof storage.privacy_enabled === "boolean") {
+				setPrivacyEnabledFlag(storage.privacy_enabled);
+			}
+		});
 
 	function resetActivityTimeout() {
 		if (activityTimeout) clearTimeout(activityTimeout);
@@ -134,6 +141,38 @@ export default defineBackground(() => {
 			return true;
 		}
 
+		if (message.type === "SET_PRIVACY_ENABLED") {
+			setPrivacyEnabledFlag(!!message.enabled);
+			browser.storage.local
+				.set({ privacy_enabled: privacyEnabled })
+				.then(() => {
+					if (currentAnimeState.title !== "Unknown") {
+						if (privacyEnabled) {
+							gateway
+								.setActivity({
+									type: currentAnimeState.isPaused ? "PAUSED" : "WATCHING",
+									title: "Anime",
+									episode: "Private Session",
+									coverUrl: "",
+									currentMs: 0,
+									durationMs: 0,
+									isPaused: currentAnimeState.isPaused,
+								})
+								.catch((err) => logger.error("[setPrivacy/toggle]", err));
+						} else {
+							gateway
+								.setActivity({
+									type: currentAnimeState.isPaused ? "PAUSED" : "WATCHING",
+									...currentAnimeState,
+								})
+								.catch((err) => logger.error("[setPrivacy/toggle]", err));
+						}
+					}
+					sendResponse({ success: true });
+				});
+			return true;
+		}
+
 		if (message.type === "GET_STATUS") {
 			browser.storage.local
 				.get(["discord_token", "auth_error"])
@@ -144,6 +183,7 @@ export default defineBackground(() => {
 							!!storage.discord_token,
 						isGatewayReady: gateway.isConnected(),
 						activityEnabled,
+						privacyEnabled,
 						authError: storage.auth_error || null,
 						currentAnime: currentAnimeState,
 					});
@@ -192,11 +232,25 @@ export default defineBackground(() => {
 		if (!shouldUpdate) return;
 		commitBroadcast(newEstimatedStart);
 
-		gateway
-			.setActivity({
-				type: currentAnimeState.isPaused ? "PAUSED" : "WATCHING",
-				...currentAnimeState,
-			})
-			.catch((err) => logger.error("[setActivity/update]", err));
+		if (!privacyEnabled) {
+			gateway
+				.setActivity({
+					type: currentAnimeState.isPaused ? "PAUSED" : "WATCHING",
+					...currentAnimeState,
+				})
+				.catch((err) => logger.error("[setActivity/update]", err));
+		} else {
+			gateway
+				.setActivity({
+					type: currentAnimeState.isPaused ? "PAUSED" : "WATCHING",
+					title: "Anime",
+					episode: "Private Session",
+					coverUrl: "",
+					currentMs: 0,
+					durationMs: 0,
+					isPaused: currentAnimeState.isPaused,
+				})
+				.catch((err) => logger.error("[setActivity/update]", err));
+		}
 	});
 });
