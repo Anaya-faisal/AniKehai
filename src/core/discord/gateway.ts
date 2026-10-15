@@ -98,11 +98,11 @@ export class DiscordGateway {
 	private identify() {
 		const userAgent = navigator.userAgent.toLowerCase();
 		let currentOs = "windows";
-		if (userAgent.includes("mac")) currentOs = "macos";
-		else if (userAgent.includes("linux")) currentOs = "linux";
-		else if (userAgent.includes("android")) currentOs = "android";
+		if (userAgent.includes("android")) currentOs = "android";
 		else if (userAgent.includes("iphone") || userAgent.includes("ipad"))
 			currentOs = "ios";
+		else if (userAgent.includes("mac")) currentOs = "macos";
+		else if (userAgent.includes("linux")) currentOs = "linux";
 
 		this.ws?.send(
 			JSON.stringify({
