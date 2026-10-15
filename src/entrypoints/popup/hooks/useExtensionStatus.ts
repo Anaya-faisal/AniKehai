@@ -6,6 +6,7 @@ import {
 	loginDiscord,
 	logoutDiscord,
 	setActivityEnabled,
+	setPrivacyEnabled,
 } from "../lib/runtime-messages";
 
 const POLL_INTERVAL_MS = 3000;
@@ -14,6 +15,7 @@ export function useExtensionStatus() {
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
 	const [isGatewayReady, setIsGatewayReady] = useState(false);
 	const [activityEnabled, setActivityEnabledState] = useState(true);
+	const [privacyEnabled, setPrivacyEnabledState] = useState(true);
 	const [currentAnime, setCurrentAnime] = useState<AnimeState | null>(null);
 	const [isBootstrapping, setIsBootstrapping] = useState(true);
 	const [isAuthLoading, setIsAuthLoading] = useState(false);
@@ -27,6 +29,7 @@ export function useExtensionStatus() {
 			setIsAuthenticated(res.hasToken);
 			setIsGatewayReady(res.isGatewayReady);
 			setActivityEnabledState(res.activityEnabled ?? true);
+			setPrivacyEnabledState(res.privacyEnabled ?? false);
 
 			if (res.authError) {
 				setError(res.authError);
@@ -102,10 +105,25 @@ export function useExtensionStatus() {
 		[activityEnabled],
 	);
 
+	const togglePrivacy = useCallback(
+		async (next: boolean) => {
+			const previous = privacyEnabled;
+			setPrivacyEnabledState(next);
+			try {
+				await setPrivacyEnabled(next);
+			} catch (err) {
+				logger.error("[popup] failed to update privacy flag", err);
+				setPrivacyEnabledState(previous);
+			}
+		},
+		[privacyEnabled],
+	);
+
 	return {
 		isAuthenticated,
 		isGatewayReady,
 		activityEnabled,
+		privacyEnabled,
 		currentAnime,
 		isBootstrapping,
 		isAuthLoading,
@@ -115,6 +133,7 @@ export function useExtensionStatus() {
 		login,
 		logout,
 		toggleActivity,
+		togglePrivacy,
 	};
 }
 
