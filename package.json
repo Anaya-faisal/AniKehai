@@ -19,7 +19,10 @@
 		"lint": "bunx biome check",
 		"lint:fix": "bunx biome check --write",
 		"format": "bunx biome format --write",
-		"validate": "bun run lint && bun run typecheck",
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
+		"validate": "bun run lint && bun run typecheck && bun run test",
 		"postinstall": "wxt prepare"
 	},
 	"dependencies": {
