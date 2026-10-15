@@ -6,9 +6,11 @@ export function parseTimeText(timeStr: string | null | undefined): number {
 
 	if (parts.length === 2) {
 		const [m = 0, s = 0] = parts;
+		if (Number.isNaN(m) || Number.isNaN(s)) return 0;
 		return (m * 60 + s) * 1000;
 	} else if (parts.length === 3) {
 		const [h = 0, m = 0, s = 0] = parts;
+		if (Number.isNaN(h) || Number.isNaN(m) || Number.isNaN(s)) return 0;
 		return (h * 3600 + m * 60 + s) * 1000;
 	}
 	return 0;
