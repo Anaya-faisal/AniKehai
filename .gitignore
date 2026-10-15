@@ -26,3 +26,8 @@ web-ext.config.ts
 # snapshots
 project-snapshot.md
 snapshot.ps1
+
+# tests
+coverage
+playwright-report
+test-results
