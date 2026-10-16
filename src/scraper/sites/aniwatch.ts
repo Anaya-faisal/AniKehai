@@ -17,7 +17,7 @@ export const aniwatchStrategy: AnimeSite = {
 			".awt-watch-info-bar img.awt-wib-poster",
 		) as HTMLImageElement;
 
-		const title = titleElement?.textContent?.trim().split("Episode")[0];
+		const title = titleElement?.textContent?.split("Episode")[0]?.trim();
 		const episode = episodeElement?.textContent?.trim();
 		const episodeName = episodeNameElement?.textContent?.trim();
 		const coverUrl = imageElement?.src;

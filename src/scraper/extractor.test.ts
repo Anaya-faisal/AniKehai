@@ -1,0 +1,53 @@
+import { describe, expect, it } from "vitest";
+import type { AnimeSite } from "../shared/types";
+import { extractMatches } from "./extractor";
+import { strategies } from "./sites";
+
+const site = (domains: string[], iframe_src: string[]): AnimeSite => ({
+	domains,
+	iframe_src,
+	getAnimeMetadata: () => ({ title: null, episode: null, coverUrl: null }),
+	getProgressStats: () => ({
+		currentMs: 0,
+		remainingMs: 0,
+		durationMs: 0,
+		isPaused: null,
+	}),
+});
+
+describe("extractMatches", () => {
+	it("returns an empty list for no strategies", () => {
+		expect(extractMatches([])).toEqual([]);
+	});
+
+	it("builds *://host/* patterns for domains, then for iframe sources", () => {
+		const result = extractMatches([
+			site(["a.com", "b.com"], ["player-a.net"]),
+			site(["c.com"], ["player-c.net", "player-d.net"]),
+		]);
+
+		expect(result).toEqual([
+			"*://a.com/*",
+			"*://b.com/*",
+			"*://c.com/*",
+			"*://player-a.net/*",
+			"*://player-c.net/*",
+			"*://player-d.net/*",
+		]);
+	});
+
+	it("keeps duplicates as-is (callers dedupe if needed)", () => {
+		const result = extractMatches([
+			site(["a.com"], ["shared.net"]),
+			site(["b.com"], ["shared.net"]),
+		]);
+		expect(result.filter((m) => m === "*://shared.net/*")).toHaveLength(2);
+	});
+
+	it("produces valid match patterns for every real strategy", () => {
+		const pattern = /^\*:\/\/[a-z0-9.-]+\/\*$/i;
+		for (const match of extractMatches(strategies)) {
+			expect(match).toMatch(pattern);
+		}
+	});
+});
