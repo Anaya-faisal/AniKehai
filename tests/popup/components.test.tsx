@@ -180,8 +180,25 @@ describe("SettingsView", () => {
 	it("toggling calls status.toggleActivity with the new value", async () => {
 		const status = makeStatus({ activityEnabled: true });
 		render(<SettingsView status={status} />);
-		await userEvent.click(screen.getByRole("switch"));
+		await userEvent.click(
+			screen.getByRole("switch", { name: "Broadcast to Discord" }),
+		);
 		expect(status.toggleActivity).toHaveBeenCalledWith(false);
+	});
+
+	it("reflects the privacy toggle state", () => {
+		render(<SettingsView status={makeStatus({ privacyEnabled: true })} />);
+		expect(screen.getByRole("switch", { name: "Privacy" })).toHaveAttribute(
+			"aria-checked",
+			"true",
+		);
+	});
+
+	it("toggling calls status.togglePrivacy with the new value", async () => {
+		const status = makeStatus({ privacyEnabled: false });
+		render(<SettingsView status={status} />);
+		await userEvent.click(screen.getByRole("switch", { name: "Privacy" }));
+		expect(status.togglePrivacy).toHaveBeenCalledWith(true);
 	});
 
 	it("Back returns to the home view", async () => {

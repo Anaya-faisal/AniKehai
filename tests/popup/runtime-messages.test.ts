@@ -4,6 +4,7 @@ import {
 	loginDiscord,
 	logoutDiscord,
 	setActivityEnabled,
+	setPrivacyEnabled,
 } from "../../src/entrypoints/popup/lib/runtime-messages";
 
 let sendMessage: ReturnType<typeof vi.spyOn>;
@@ -26,6 +27,16 @@ describe("popup runtime messages", () => {
 			"setActivityEnabled(false)",
 			() => setActivityEnabled(false),
 			{ type: "SET_ACTIVITY_ENABLED", enabled: false },
+		],
+		[
+			"setPrivacyEnabled(true)",
+			() => setPrivacyEnabled(true),
+			{ type: "SET_PRIVACY_ENABLED", enabled: true },
+		],
+		[
+			"setPrivacyEnabled(false)",
+			() => setPrivacyEnabled(false),
+			{ type: "SET_PRIVACY_ENABLED", enabled: false },
 		],
 	])("%s sends the right message", async (_name, call, expected) => {
 		sendMessage.mockResolvedValue({ success: true } as never);

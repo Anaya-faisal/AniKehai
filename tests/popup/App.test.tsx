@@ -14,6 +14,7 @@ const status = (patch: Partial<StatusResponse> = {}): StatusResponse => ({
 	hasToken: true,
 	isGatewayReady: true,
 	activityEnabled: true,
+	privacyEnabled: false,
 	authError: null,
 	currentAnime: null,
 	...patch,
@@ -24,6 +25,7 @@ beforeEach(() => {
 	mocked.loginDiscord.mockResolvedValue({ success: true });
 	mocked.logoutDiscord.mockResolvedValue({ success: true });
 	mocked.setActivityEnabled.mockResolvedValue({ success: true });
+	mocked.setPrivacyEnabled.mockResolvedValue({ success: true });
 });
 
 describe("<App /> (popup integration)", () => {
@@ -104,6 +106,18 @@ describe("<App /> (popup integration)", () => {
 		);
 
 		expect(mocked.setActivityEnabled).toHaveBeenCalledWith(false);
+	});
+
+	it("settings: toggling privacy calls the background", async () => {
+		render(<App />);
+		await userEvent.click(
+			await screen.findByRole("button", { name: "Open settings" }),
+		);
+		await userEvent.click(
+			await screen.findByRole("switch", { name: "Privacy" }),
+		);
+
+		expect(mocked.setPrivacyEnabled).toHaveBeenCalledWith(true);
 	});
 
 	it("settings: logging out brings the auth gate back", async () => {

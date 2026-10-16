@@ -5,7 +5,9 @@ import {
 	commitBroadcast,
 	currentAnimeState,
 	evaluateDiscordUpdate,
+	privacyEnabled,
 	setActivityEnabledFlag,
+	setPrivacyEnabledFlag,
 } from "./playback";
 
 const NOW = 1_700_000_000_000;
@@ -32,6 +34,7 @@ beforeEach(() => {
 	vi.setSystemTime(NOW);
 	clearAnimeState();
 	setActivityEnabledFlag(true);
+	setPrivacyEnabledFlag(false);
 });
 
 afterEach(() => {
@@ -69,6 +72,15 @@ describe("setActivityEnabledFlag", () => {
 		expect(activityEnabled).toBe(false);
 		setActivityEnabledFlag(true);
 		expect(activityEnabled).toBe(true);
+	});
+});
+
+describe("setPrivacyEnabledFlag", () => {
+	it("toggles the exported live binding", () => {
+		setPrivacyEnabledFlag(true);
+		expect(privacyEnabled).toBe(true);
+		setPrivacyEnabledFlag(false);
+		expect(privacyEnabled).toBe(false);
 	});
 });
 
@@ -169,8 +181,6 @@ describe("evaluateDiscordUpdate", () => {
 			expect(evaluateDiscordUpdate("INFO_UPDATE").shouldUpdate).toBe(false);
 		});
 
-		// Documents CURRENT behaviour: an episode *name*-only change is not broadcast.
-		// If you decide it should be, change hasInfoChanged in playback.ts and flip this.
 		it("does not update when only episodeName changes", () => {
 			currentAnimeState.episodeName = "A brand new name";
 			expect(evaluateDiscordUpdate("INFO_UPDATE").shouldUpdate).toBe(false);

@@ -8,6 +8,7 @@ export function makeStatus(
 		isAuthenticated: true,
 		isGatewayReady: true,
 		activityEnabled: true,
+		privacyEnabled: false,
 		currentAnime: null,
 		isBootstrapping: false,
 		isAuthLoading: false,
@@ -17,6 +18,7 @@ export function makeStatus(
 		login: vi.fn(),
 		logout: vi.fn(),
 		toggleActivity: vi.fn(),
+		togglePrivacy: vi.fn(),
 		...patch,
 	};
 }

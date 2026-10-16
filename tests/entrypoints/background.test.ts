@@ -9,6 +9,7 @@ import {
 	clearAnimeState,
 	currentAnimeState,
 	setActivityEnabledFlag,
+	setPrivacyEnabledFlag,
 } from "../../src/core/state/playback";
 import background from "../../src/entrypoints/background";
 import { RESET_ACTIVITY_TIMEOUT } from "../../src/shared/constants";
@@ -75,6 +76,7 @@ beforeEach(() => {
 	vi.setSystemTime(1_700_000_000_000);
 	clearAnimeState();
 	setActivityEnabledFlag(true);
+	setPrivacyEnabledFlag(false);
 
 	gateway.connect.mockResolvedValue(undefined);
 	gateway.setActivity.mockResolvedValue(undefined);
@@ -94,22 +96,28 @@ describe("startup", () => {
 		expect(gateway.connect).toHaveBeenCalledTimes(1);
 	});
 
-	it("restores the persisted activity_enabled=false flag", async () => {
-		await browser.storage.local.set({ activity_enabled: false });
+	it("restores the persisted activity_enabled and privacy_enabled flags", async () => {
+		await browser.storage.local.set({
+			activity_enabled: false,
+			privacy_enabled: true,
+		});
 		await startBackground();
 
 		const { sendResponse } = await dispatch({ type: "GET_STATUS" });
 		expect(sendResponse).toHaveBeenCalledWith(
-			expect.objectContaining({ activityEnabled: false }),
+			expect.objectContaining({ activityEnabled: false, privacyEnabled: true }),
 		);
 	});
 
-	it("ignores a non-boolean persisted flag", async () => {
-		await browser.storage.local.set({ activity_enabled: "nope" });
+	it("ignores non-boolean persisted flags", async () => {
+		await browser.storage.local.set({
+			activity_enabled: "nope",
+			privacy_enabled: "yes",
+		});
 		await startBackground();
 		const { sendResponse } = await dispatch({ type: "GET_STATUS" });
 		expect(sendResponse).toHaveBeenCalledWith(
-			expect.objectContaining({ activityEnabled: true }),
+			expect.objectContaining({ activityEnabled: true, privacyEnabled: false }),
 		);
 	});
 });
@@ -264,7 +272,7 @@ describe("LOGIN_DISCORD", () => {
 		const { sendResponse, returned } = await dispatch({
 			type: "LOGIN_DISCORD",
 		});
-		expect(returned).toBe(true); // keeps the message channel open
+		expect(returned).toBe(true);
 		expect(gateway.connect).toHaveBeenCalledTimes(1);
 		expect(sendResponse).toHaveBeenCalledWith({ success: true });
 	});
@@ -378,6 +386,58 @@ describe("SET_ACTIVITY_ENABLED", () => {
 	});
 });
 
+describe("SET_PRIVACY_ENABLED", () => {
+	beforeEach(startBackground);
+
+	it("persists the new value and replies", async () => {
+		const { sendResponse } = await dispatch({
+			type: "SET_PRIVACY_ENABLED",
+			enabled: true,
+		});
+		expect(
+			(await browser.storage.local.get("privacy_enabled")).privacy_enabled,
+		).toBe(true);
+		expect(sendResponse).toHaveBeenCalledWith({ success: true });
+	});
+
+	it("updates active presence to a private session when enabled", async () => {
+		await dispatch(info());
+		gateway.setActivity.mockClear();
+
+		await dispatch({ type: "SET_PRIVACY_ENABLED", enabled: true });
+
+		expect(gateway.setActivity).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "WATCHING",
+				title: "Anime",
+				episode: "Private Session",
+				coverUrl: "",
+			}),
+		);
+	});
+
+	it("restores active presence when disabled", async () => {
+		await dispatch(info());
+		await dispatch({ type: "SET_PRIVACY_ENABLED", enabled: true });
+		gateway.setActivity.mockClear();
+
+		await dispatch({ type: "SET_PRIVACY_ENABLED", enabled: false });
+
+		expect(gateway.setActivity).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "WATCHING",
+				title: "Frieren",
+				episode: "Episode 3",
+			}),
+		);
+	});
+
+	it("does not send presence updates if no anime is tracked", async () => {
+		await dispatch({ type: "SET_PRIVACY_ENABLED", enabled: true });
+		expect(gateway.setActivity).not.toHaveBeenCalled();
+	});
+});
+
 describe("GET_STATUS", () => {
 	beforeEach(startBackground);
 
@@ -388,6 +448,7 @@ describe("GET_STATUS", () => {
 			hasToken: false,
 			isGatewayReady: false,
 			activityEnabled: true,
+			privacyEnabled: false,
 			authError: null,
 			currentAnime: currentAnimeState,
 		});
@@ -501,6 +562,26 @@ describe("messages from content scripts", () => {
 					episode: "Episode 3",
 				}),
 			);
+		});
+
+		it("broadcasts masked metadata when privacy is enabled", async () => {
+			await dispatch({ type: "SET_PRIVACY_ENABLED", enabled: true });
+			gateway.setActivity.mockClear();
+
+			await dispatch(info());
+
+			expect(gateway.setActivity).toHaveBeenCalledWith(
+				expect.objectContaining({
+					type: "WATCHING",
+					title: "Anime",
+					episode: "Private Session",
+					coverUrl: "",
+					currentMs: 0,
+					durationMs: 0,
+				}),
+			);
+			// local state remains intact
+			expect(currentAnimeState.title).toBe("Frieren");
 		});
 
 		it("broadcasts PAUSED when the player is paused", async () => {

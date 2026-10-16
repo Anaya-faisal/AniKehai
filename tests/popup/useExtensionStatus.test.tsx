@@ -10,6 +10,7 @@ const status = (patch: Partial<StatusResponse> = {}): StatusResponse => ({
 	hasToken: true,
 	isGatewayReady: true,
 	activityEnabled: true,
+	privacyEnabled: false,
 	authError: null,
 	currentAnime: null,
 	...patch,
@@ -29,6 +30,7 @@ beforeEach(() => {
 	mocked.loginDiscord.mockResolvedValue({ success: true });
 	mocked.logoutDiscord.mockResolvedValue({ success: true });
 	mocked.setActivityEnabled.mockResolvedValue({ success: true });
+	mocked.setPrivacyEnabled.mockResolvedValue({ success: true });
 });
 
 describe("bootstrapping", () => {
@@ -41,6 +43,7 @@ describe("bootstrapping", () => {
 			isAuthenticated: true,
 			isGatewayReady: true,
 			activityEnabled: true,
+			privacyEnabled: false,
 			view: "home",
 			error: null,
 		});
@@ -65,6 +68,18 @@ describe("bootstrapping", () => {
 		mocked.getStatus.mockResolvedValue(status({ activityEnabled: false }));
 		const { result } = await setup();
 		expect(result.current.activityEnabled).toBe(false);
+	});
+
+	it("defaults privacyEnabled to false when the background omits it", async () => {
+		mocked.getStatus.mockResolvedValue(status({ privacyEnabled: undefined }));
+		const { result } = await setup();
+		expect(result.current.privacyEnabled).toBe(false);
+	});
+
+	it("respects privacyEnabled=true", async () => {
+		mocked.getStatus.mockResolvedValue(status({ privacyEnabled: true }));
+		const { result } = await setup();
+		expect(result.current.privacyEnabled).toBe(true);
 	});
 
 	it("finishes bootstrapping even if the background is unreachable", async () => {
@@ -263,6 +278,25 @@ describe("toggleActivity", () => {
 
 		await act(() => result.current.toggleActivity(false));
 		expect(result.current.activityEnabled).toBe(true);
+	});
+});
+
+describe("togglePrivacy", () => {
+	it("optimistically updates and tells the background", async () => {
+		const { result } = await setup();
+		await act(() => result.current.togglePrivacy(true));
+
+		expect(mocked.setPrivacyEnabled).toHaveBeenCalledWith(true);
+		expect(result.current.privacyEnabled).toBe(true);
+	});
+
+	it("rolls back when the background call fails", async () => {
+		vi.spyOn(console, "error").mockImplementation(() => {});
+		mocked.setPrivacyEnabled.mockRejectedValue(new Error("x"));
+		const { result } = await setup();
+
+		await act(() => result.current.togglePrivacy(true));
+		expect(result.current.privacyEnabled).toBe(false);
 	});
 });
 
