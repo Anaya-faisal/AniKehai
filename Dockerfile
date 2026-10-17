@@ -14,6 +14,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright \
     BUN_INSTALL_CACHE_DIR=/root/.bun/install/cache \
     DO_NOT_TRACK=1
 
+# hadolint ignore=DL3008
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates git \
  && rm -rf /var/lib/apt/lists/* \
