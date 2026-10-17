@@ -26,6 +26,7 @@ web-ext.config.ts
 # snapshots
 project-snapshot.md
 snapshot.ps1
+snapshot.sh
 
 # tests
 coverage
