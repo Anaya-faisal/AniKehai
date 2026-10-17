@@ -26,6 +26,16 @@
 		"test:e2e": "wxt build && playwright test",
 		"test:e2e:install": "playwright install --with-deps chromium",
 		"validate": "bun run lint && bun run typecheck && bun run test",
+		"docker:dev": "docker compose up --build dev",
+		"docker:dev:firefox": "docker compose up --build dev-firefox",
+		"docker:shell": "docker compose run --rm --build shell",
+		"docker:lint": "docker compose run --rm --build lint",
+		"docker:test": "docker compose run --rm --build test",
+		"docker:build": "docker compose run --rm --build build",
+		"docker:e2e": "docker compose run --rm --build e2e",
+		"docker:health": "docker compose run --rm --build health",
+		"docker:ci": "docker compose run --rm --build ci",
+		"docker:clean": "docker compose --profile dev --profile ci down --volumes --rmi local",
 		"postinstall": "wxt prepare"
 	},
 	"dependencies": {

@@ -12,6 +12,7 @@ export default defineConfig({
 		unstubGlobals: true,
 		clearMocks: true,
 		coverage: {
+			clean: false,
 			provider: "v8",
 			include: ["src/**/*.{ts,tsx}"],
 			exclude: [
