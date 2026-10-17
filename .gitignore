@@ -32,3 +32,8 @@ snapshot.sh
 coverage
 playwright-report
 test-results
+
+# docker
+.env
+.env.*
+!.env.example
