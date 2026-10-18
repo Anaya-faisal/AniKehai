@@ -7,30 +7,33 @@ assignees: ''
 ---
 
 **Describe the bug**
-A clear and concise description of what the bug is (e.g., The timer gets stuck, the Discord status shows "Unknown", the cover art is missing).
+A clear and concise description of the problem (e.g., the timer is stuck, Discord shows "Unknown", cover art is missing).
 
-**Affected Site**
+**Affected site**
 Which streaming site were you watching on? (e.g., anikototv.to, animepahe.pw)
-- Site URL: 
+- Site URL:
 
-**To Reproduce**
-Steps to reproduce the behavior:
+**To reproduce**
 1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
+2. Click on '...'
+3. Scroll down to '...'
 4. See error
 
 **Expected behavior**
-A clear and concise description of what you expected to happen on your Discord Rich Presence.
+What you expected to see on your Discord Rich Presence.
 
-**Screenshots / Logs**
-If applicable, add screenshots of your Discord status or the browser console logs to help explain your problem.
+**Screenshots / logs**
+Add screenshots of your Discord status and, if you can, the extension logs.
+How to turn logs on: open the extension's background service worker console and run `enable_logs = true`
+(see https://github.com/minkxx/AniKehai/blob/main/docs/troubleshooting.md#how-to-turn-on-logs).
 
-**Environment details:**
- - OS: [e.g. Windows 11, macOS, Linux]
- - Browser: [e.g. Chrome, Firefox, Edge]
- - Extension Version: [e.g. v1.3.0]
- - Host App Running: [Yes/No]
+**Environment**
+ - OS: [e.g. Windows 11, macOS, Linux, Android]
+ - Browser: [e.g. Chrome, Firefox, Edge, Kiwi]
+ - Extension version: [e.g. v2.6.1] (shown at the bottom of the popup)
+ - Logged in with Discord: [Yes/No]
+ - Privacy mode on: [Yes/No]
+ - "Broadcast to Discord" on: [Yes/No]
 
 **Additional context**
-Add any other context about the problem here.
+Anything else that might help.
