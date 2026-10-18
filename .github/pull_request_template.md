@@ -1,29 +1,38 @@
 ## Description
-<!-- Please include a summary of the changes and the related issue. Please also include relevant motivation and context. -->
+<!-- What does this PR change, and why? Keep it short and focused. -->
 
-Closes #<!-- insert issue number here -->
+Closes #<!-- issue number, or delete this line -->
 
 ## Type of Change
-<!-- Please check the one that applies to this PR using "x". -->
-- [ ] Bug fix (non-breaking change which fixes an issue)
-- [ ] New feature (e.g., adding a new site strategy)
-- [ ] Refactoring (code changes that neither fix a bug nor add a feature)
+<!-- Mark one with "x". -->
+- [ ] Bug fix (non-breaking change that fixes an issue)
+- [ ] New feature (e.g., a new site strategy)
+- [ ] Refactoring (no behavior change)
 - [ ] Documentation update
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Tests only
+- [ ] Breaking change (existing behavior changes)
 
 ## How Has This Been Tested?
-<!-- Please describe the tests that you ran to verify your changes. -->
-- [ ] Loaded the unpacked extension in Chrome/Firefox.
-- [ ] Verified that the Discord Rich Presence updates correctly (Watching/Paused/Time Remaining).
-- [ ] Tested on the specific streaming site(s) modified in this PR.
+- [ ] `bun run test` passes (or `bun run docker:test`)
+- [ ] Loaded the extension in Chrome/Firefox and tried it
+- [ ] Discord Rich Presence updates correctly (Watching / Paused / time remaining)
+- [ ] Tested on the streaming site(s) changed in this PR
 
-## Checklist:
-<!-- Go over all the following points, and put an `x` in all the boxes that apply. -->
-- [ ] My code follows the style guidelines of this project.
-- [ ] I have run `bun check` and resolved any Biome formatting/linting errors.
-- [ ] I have performed a self-review of my own code.
-- [ ] I have commented my code, particularly in hard-to-understand areas or when using complex DOM selectors.
-- [ ] My changes generate no new warnings or errors in the browser console.
+## Checklist
+- [ ] My branch is based on `main` and this PR does one thing
+- [ ] `bun run lint` passes (run `bun run lint:fix` to auto-fix)
+- [ ] `bun run typecheck` passes
+- [ ] I added or updated tests (coverage stays above 80% lines / 70% branches)
+- [ ] My commit messages follow Conventional Commits (`feat:`, `fix:`, `docs:` ...)
+- [ ] I used `logger` instead of `console.log`
+- [ ] I did not commit secrets, tokens or `.env` files
+- [ ] I updated the docs if setup or behavior changed
 
-## Screenshots (if appropriate):
-<!-- If you added a new site or changed the RPC output, please add a screenshot of the Discord status here. -->
+### Only for new sites
+- [ ] Strategy added in `src/scraper/sites/` and registered in `index.ts`
+- [ ] Fixture + unit test added (`tests/fixtures/<site>/watch.html.fixture`)
+- [ ] Entry added to `tests/e2e/content-script.spec.ts` and `tests/health/live-dom.spec.ts`
+- [ ] Site count updated in `src/scraper/sites/index.test.ts`
+
+## Screenshots (if appropriate)
+<!-- For new sites or presence changes, add a screenshot of your Discord status. -->
