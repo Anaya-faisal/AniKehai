@@ -15,8 +15,8 @@ A lightweight, standalone browser extension that shows the anime you are watchin
 
 <!-- DOWNLOADS:START -->
 ![GitHub Downloads](https://img.shields.io/badge/github_downloads-194-blue?style=flat&labelColor=555555)
-![Firefox Weekly Downloads](https://img.shields.io/badge/firefox_weekly_downloads-5-blue?style=flat&labelColor=555555)
-![Firefox Active Users](https://img.shields.io/badge/firefox_active_users-23-blue?style=flat&labelColor=555555)
+![Firefox Weekly Downloads](https://img.shields.io/badge/firefox_weekly_downloads-4-blue?style=flat&labelColor=555555)
+![Firefox Active Users](https://img.shields.io/badge/firefox_active_users-24-blue?style=flat&labelColor=555555)
 <!-- DOWNLOADS:END -->
 
 <a href="https://discord.gg/w9Q7YUrzpn"><img src="https://invidget.switchblade.xyz/w9Q7YUrzpn"></a>
