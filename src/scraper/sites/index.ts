@@ -1,5 +1,6 @@
 import { anikotoStrategy } from "./anikoto";
 import { animepaheStrategy } from "./animepahe";
+import { animexStrategy } from "./animex";
 import { aniwatchStrategy } from "./aniwatch";
 import { aniwaveStrategy } from "./aniwave";
 import { hianimeStrategy } from "./hianime";
@@ -16,4 +17,5 @@ export const strategies = [
 	reanimeStrategy,
 	kaaStrategy,
 	miruroStrategy,
+	animexStrategy,
 ];
