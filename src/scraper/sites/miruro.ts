@@ -1,13 +1,11 @@
 import type { AnimeSite } from "../../shared/types";
 import { getStandardVideoStats } from "../parser";
 
-// AniList cover thumbnails in the player header; `alt` holds the clean show title
 const COVER_SELECTOR =
 	'img[src*="anilistcdn/media/anime/cover"][alt]:not([alt=""])';
 const EPISODE_LABEL_REGEX = /^Episode\s+(\S+)$/i;
 const EPISODE_NUMBER_REGEX = /^\d+(\.\d+)?$/;
 
-// The player header is <h1>Episode name</h1><p>Episode N</p>
 const getEpisodeInfo = (): { episode: string; name: string | null } | null => {
 	for (const h1 of document.querySelectorAll("h1")) {
 		const match = h1.nextElementSibling?.textContent
@@ -34,7 +32,6 @@ export const miruroStrategy: AnimeSite = {
 	iframe_src: ["strm.cx"],
 
 	getAnimeMetadata: () => {
-		// Only report activity on watch pages (not /, /info/..., ...)
 		if (!window.location.pathname.startsWith("/watch/")) {
 			return { title: null, episode: null, coverUrl: null };
 		}
@@ -42,7 +39,6 @@ export const miruroStrategy: AnimeSite = {
 		const cover = document.querySelector<HTMLImageElement>(COVER_SELECTOR);
 		const info = getEpisodeInfo();
 
-		// Fallback: the ?ep= query param holds the episode number
 		const epParam = new URLSearchParams(window.location.search).get("ep");
 		const episode =
 			info?.episode ??
@@ -53,7 +49,6 @@ export const miruroStrategy: AnimeSite = {
 		return {
 			title: cover?.alt.trim() || null,
 			episode,
-			// Skip names that just repeat "Episode N"
 			episodeName: info?.name && info.name !== episode ? info.name : null,
 			coverUrl: cover?.src || null,
 		};
