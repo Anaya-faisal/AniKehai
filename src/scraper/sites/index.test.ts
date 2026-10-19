@@ -4,8 +4,8 @@ import { strategies } from "./index";
 const HOSTNAME = /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i;
 
 describe("strategies registry", () => {
-	it("registers the 8 supported sites", () => {
-		expect(strategies).toHaveLength(8);
+	it("registers the 9 supported sites", () => {
+		expect(strategies).toHaveLength(9);
 	});
 
 	describe.each(
