@@ -71,6 +71,7 @@ export function evaluateDiscordUpdate(
 
 	const hasTimeDrifted =
 		!currentAnimeState.isPaused &&
+		currentAnimeState.durationMs > 0 &&
 		timeDrift > 2500 &&
 		messageType === "TIME_UPDATE";
 
