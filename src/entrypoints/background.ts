@@ -37,9 +37,11 @@ export default defineBackground(() => {
 	function resetActivityTimeout() {
 		if (activityTimeout) clearTimeout(activityTimeout);
 		activityTimeout = setTimeout(() => {
-			gateway
-				.setActivity({ type: "STOPPED", ...currentAnimeState })
-				.catch((err) => logger.error("[setActivity/timeout]", err));
+			if (currentAnimeState.title !== "Unknown") {
+				gateway
+					.setActivity({ type: "STOPPED", ...currentAnimeState })
+					.catch((err) => logger.error("[setActivity/timeout]", err));
+			}
 			clearAnimeState();
 		}, RESET_ACTIVITY_TIMEOUT * 1000);
 	}
@@ -133,9 +135,11 @@ export default defineBackground(() => {
 				await browser.storage.local.set({ activity_enabled: activityEnabled });
 				if (!activityEnabled) {
 					if (activityTimeout) clearTimeout(activityTimeout);
-					gateway
-						.setActivity({ type: "STOPPED", ...currentAnimeState })
-						.catch((err) => logger.error("[setActivity/toggle]", err));
+					if (currentAnimeState.title !== "Unknown") {
+						gateway
+							.setActivity({ type: "STOPPED", ...currentAnimeState })
+							.catch((err) => logger.error("[setActivity/toggle]", err));
+					}
 					clearAnimeState();
 				}
 				sendResponse({ success: true });
@@ -198,9 +202,11 @@ export default defineBackground(() => {
 			if (!sender.tab?.active) return;
 
 			if (message.type === "STOPPED") {
-				gateway
-					.setActivity({ type: "STOPPED", ...currentAnimeState })
-					.catch((err) => logger.error("[setActivity/stopped]", err));
+				if (currentAnimeState.title !== "Unknown") {
+					gateway
+						.setActivity({ type: "STOPPED", ...currentAnimeState })
+						.catch((err) => logger.error("[setActivity/stopped]", err));
+				}
 				if (activityTimeout) clearTimeout(activityTimeout);
 				clearAnimeState();
 				return;

@@ -154,14 +154,14 @@ describe("inside a player iframe (progress strategy)", () => {
 		);
 	});
 
-	it("coerces an unknown pause state (null) to false", () => {
+	it("coerces an unknown pause state (null) to true", () => {
 		setBody("<div>no player yet</div>");
 		injectInto("https://kwik.cx/e/abc");
 		vi.advanceTimersByTime(TICK);
 		expect(sendMessage).toHaveBeenCalledWith(
 			expect.objectContaining({
 				type: "TIME_UPDATE",
-				isPaused: false,
+				isPaused: true,
 				currentMs: 0,
 			}),
 		);
