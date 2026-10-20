@@ -6,6 +6,8 @@ async function registerExternalAsset(url: string): Promise<string | null> {
 	const token =
 		typeof storage.discord_token === "string" ? storage.discord_token : null;
 
+	if (!token) return null;
+
 	const res = await fetch(
 		`https://discord.com/api/v10/applications/${APPLICATION_ID}/external-assets`,
 		{
