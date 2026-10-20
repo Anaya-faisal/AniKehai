@@ -10,9 +10,11 @@ export class DiscordGateway {
 	private isReady = false;
 	private isManualDisconnect = false;
 	private reconnectAttempts = 0;
+	private lastSentPresenceJson: string | null = null;
 
 	async connect() {
 		this.isManualDisconnect = false;
+		this.lastSentPresenceJson = null;
 		const storage = await browser.storage.local.get("discord_token");
 		this.token =
 			typeof storage.discord_token === "string" ? storage.discord_token : null;
@@ -177,17 +179,26 @@ export class DiscordGateway {
 			},
 		};
 
+		const serializedPayload = JSON.stringify(payload);
+		if (this.lastSentPresenceJson === serializedPayload) {
+			logger.log("[Gateway] Detected duplicate payload! Skipping update.");
+			return;
+		}
+
+		this.lastSentPresenceJson = serializedPayload;
+
 		logger.log(
 			"[Gateway] Sending presence payload:",
 			JSON.stringify(payload, null, 2),
 		);
-		this.ws.send(JSON.stringify(payload));
+		this.ws.send(serializedPayload);
 	}
 
 	public disconnect() {
 		this.isManualDisconnect = true;
 		this.isReady = false;
 		this.stopHeartbeat();
+		this.lastSentPresenceJson = null;
 		this.ws?.close();
 		this.ws = null;
 	}
