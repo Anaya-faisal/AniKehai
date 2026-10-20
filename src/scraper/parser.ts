@@ -17,16 +17,33 @@ export function parseTimeText(timeStr: string | null | undefined): number {
 }
 
 export function getStandardVideoStats() {
-	const videoElement = document.querySelector("video") as HTMLVideoElement;
+	let bestVideo: HTMLVideoElement | null = null;
+	let maxArea = -1;
+
+	for (const video of document.querySelectorAll("video")) {
+		if (!video.paused && !video.ended && Number.isFinite(video.duration)) {
+			bestVideo = video;
+			break;
+		}
+
+		const rect = video.getBoundingClientRect();
+		const area = rect.width * rect.height;
+		if (area > maxArea) {
+			maxArea = area;
+			bestVideo = video;
+		}
+	}
+
+	const videoElement = bestVideo;
 
 	if (videoElement) {
 		const duration =
-			videoElement.duration && !Number.isNaN(videoElement.duration)
+			videoElement.duration && Number.isFinite(videoElement.duration)
 				? Math.floor(videoElement.duration * 1000)
 				: 0;
 
 		const current =
-			videoElement.currentTime && !Number.isNaN(videoElement.currentTime)
+			videoElement.currentTime && Number.isFinite(videoElement.currentTime)
 				? Math.floor(videoElement.currentTime * 1000)
 				: 0;
 
@@ -34,7 +51,7 @@ export function getStandardVideoStats() {
 			currentMs: current,
 			durationMs: duration,
 			remainingMs: Math.max(0, duration - current),
-			isPaused: videoElement.paused,
+			isPaused: videoElement.paused || videoElement.ended,
 		};
 	}
 
