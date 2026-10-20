@@ -130,7 +130,11 @@ export default defineBackground(() => {
 				gateway.disconnect();
 				isLoggingOut = true;
 				try {
-					await browser.storage.local.remove("discord_token");
+					await browser.storage.local.remove([
+						"discord_token",
+						"discord_refresh_token",
+						"discord_token_expires_at",
+					]);
 				} finally {
 					isLoggingOut = false;
 				}

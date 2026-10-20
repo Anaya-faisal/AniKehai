@@ -2,6 +2,7 @@ import { APPLICATION_ID } from "../../shared/constants";
 import { logger } from "../../shared/logger";
 import type { PlaybackState } from "../../shared/types";
 import { getAppAssetId, getLargeImageKey } from "../discord/assets";
+import { refreshDiscordToken } from "./auth";
 
 export class DiscordGateway {
 	private ws: WebSocket | null = null;
@@ -17,9 +18,21 @@ export class DiscordGateway {
 		this.isManualDisconnect = false;
 		this.lastSentPresenceJson = null;
 		this.presenceQueue = Promise.resolve();
-		const storage = await browser.storage.local.get("discord_token");
-		this.token =
+
+		const storage = await browser.storage.local.get([
+			"discord_token",
+			"discord_token_expires_at",
+		]);
+
+		let token =
 			typeof storage.discord_token === "string" ? storage.discord_token : null;
+		const expiresAt = storage.discord_token_expires_at as number | undefined;
+
+		if (token && expiresAt && Date.now() >= expiresAt - 300000) {
+			token = await refreshDiscordToken();
+		}
+
+		this.token = token;
 
 		if (!this.token) {
 			logger.error("[Gateway] No token found in storage.");
@@ -64,13 +77,23 @@ export class DiscordGateway {
 			}
 		};
 
-		this.ws.onclose = (event: CloseEvent) => {
+		this.ws.onclose = async (event: CloseEvent) => {
 			this.isReady = false;
 			this.stopHeartbeat();
 
 			if (event.code === 4004) {
-				logger.error("[Gateway] Token expired or invalid. Clearing token.");
-				browser.storage.local.remove("discord_token");
+				logger.warn("[Gateway] Token expired (4004). Attempting refresh.");
+				const newToken = await refreshDiscordToken();
+				if (newToken) {
+					this.connect();
+				} else {
+					logger.error("[Gateway] Refresh failed. Clearing token.");
+					browser.storage.local.remove([
+						"discord_token",
+						"discord_refresh_token",
+						"discord_token_expires_at",
+					]);
+				}
 				return;
 			}
 
