@@ -22,6 +22,7 @@ export default defineBackground(() => {
 	gateway.connect();
 
 	let activityTimeout: ReturnType<typeof setTimeout> | null = null;
+	let isLoggingOut = false;
 
 	const settingsReady = browser.storage.local
 		.get(["activity_enabled", "privacy_enabled"])
@@ -74,6 +75,8 @@ export default defineBackground(() => {
 	browser.storage.onChanged.addListener((changes, areaName) => {
 		if (areaName === "local" && changes.discord_token) {
 			if (!changes.discord_token.newValue && changes.discord_token.oldValue) {
+				if (isLoggingOut) return;
+
 				logger.warn("Discord token expired or removed. Prompting for re-auth.");
 
 				if (browser.action?.openPopup) {
@@ -125,7 +128,12 @@ export default defineBackground(() => {
 
 			if (message.type === "LOGOUT_DISCORD") {
 				gateway.disconnect();
-				await browser.storage.local.remove("discord_token");
+				isLoggingOut = true;
+				try {
+					await browser.storage.local.remove("discord_token");
+				} finally {
+					isLoggingOut = false;
+				}
 				sendResponse({ success: true });
 				return;
 			}
