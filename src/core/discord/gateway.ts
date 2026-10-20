@@ -11,10 +11,12 @@ export class DiscordGateway {
 	private isManualDisconnect = false;
 	private reconnectAttempts = 0;
 	private lastSentPresenceJson: string | null = null;
+	private presenceQueue: Promise<void> = Promise.resolve();
 
 	async connect() {
 		this.isManualDisconnect = false;
 		this.lastSentPresenceJson = null;
+		this.presenceQueue = Promise.resolve();
 		const storage = await browser.storage.local.get("discord_token");
 		this.token =
 			typeof storage.discord_token === "string" ? storage.discord_token : null;
@@ -121,7 +123,23 @@ export class DiscordGateway {
 		);
 	}
 
-	public async setActivity(
+	public setActivity(
+		state: PlaybackState & {
+			title: string;
+			episode: string;
+			episodeName?: string;
+			coverUrl: string;
+			currentMs: number;
+			durationMs: number;
+			isPaused: boolean;
+		},
+	): Promise<void> {
+		const next = this.presenceQueue.then(() => this.processSetActivity(state));
+		this.presenceQueue = next.catch(() => {});
+		return next;
+	}
+
+	private async processSetActivity(
 		state: PlaybackState & {
 			title: string;
 			episode: string;
@@ -136,18 +154,30 @@ export class DiscordGateway {
 
 		const isStopped = state.type === "STOPPED";
 
+		let largeImage: string | undefined;
+		let smallImage: string | undefined;
+
+		if (!isStopped) {
+			largeImage = state.coverUrl
+				? await getLargeImageKey(state.coverUrl)
+				: await getAppAssetId("default_cover");
+
+			smallImage = await getAppAssetId(state.isPaused ? "pause" : "play");
+
+			if (!this.isReady || !this.ws) return;
+		}
+
 		let timestamps: { start?: number; end?: number } | undefined;
-		if (!state.isPaused && state.currentMs > 0 && state.durationMs > 0) {
+		if (
+			!isStopped &&
+			!state.isPaused &&
+			state.currentMs > 0 &&
+			state.durationMs > 0
+		) {
 			const start = Math.floor(Date.now() - state.currentMs);
 			const end = Math.floor(start + state.durationMs);
 			timestamps = { start, end };
 		}
-
-		const largeImage = state.coverUrl
-			? await getLargeImageKey(state.coverUrl)
-			: await getAppAssetId("default_cover");
-
-		const smallImage = await getAppAssetId(state.isPaused ? "pause" : "play");
 
 		const presenceState =
 			state.episode + (state.episodeName ? `: ${state.episodeName}` : "");
@@ -199,6 +229,7 @@ export class DiscordGateway {
 		this.isReady = false;
 		this.stopHeartbeat();
 		this.lastSentPresenceJson = null;
+		this.presenceQueue = Promise.resolve();
 		this.ws?.close();
 		this.ws = null;
 	}
