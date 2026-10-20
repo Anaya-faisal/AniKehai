@@ -15,7 +15,7 @@ export function useExtensionStatus() {
 	const [isAuthenticated, setIsAuthenticated] = useState(false);
 	const [isGatewayReady, setIsGatewayReady] = useState(false);
 	const [activityEnabled, setActivityEnabledState] = useState(true);
-	const [privacyEnabled, setPrivacyEnabledState] = useState(true);
+	const [privacyEnabled, setPrivacyEnabledState] = useState(false);
 	const [currentAnime, setCurrentAnime] = useState<AnimeState | null>(null);
 	const [isBootstrapping, setIsBootstrapping] = useState(true);
 	const [isAuthLoading, setIsAuthLoading] = useState(false);
