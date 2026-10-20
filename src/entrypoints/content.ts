@@ -29,7 +29,7 @@ export default defineContentScript({
 						type: "TIME_UPDATE",
 						currentMs: stats.currentMs,
 						durationMs: stats.durationMs,
-						isPaused: !!stats.isPaused,
+						isPaused: stats.isPaused ?? true,
 					});
 
 					return;
