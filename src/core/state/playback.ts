@@ -75,6 +75,14 @@ export function evaluateDiscordUpdate(
 		timeDrift > 2500 &&
 		messageType === "TIME_UPDATE";
 
+	const isCurrentEmpty = currentAnimeState.title === "Unknown";
+	const isPrevEmpty =
+		lastBroadcast.title === "Unknown" || lastBroadcast.title === "";
+
+	if (isCurrentEmpty && isPrevEmpty) {
+		return { shouldUpdate: false, newEstimatedStart };
+	}
+
 	const shouldUpdate =
 		hasInfoChanged || hasStateChanged || hasDurationChanged || hasTimeDrifted;
 
