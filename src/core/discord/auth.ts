@@ -89,10 +89,55 @@ async function exchangeCodeForToken(
 
 	const data = await res.json();
 	if (data.access_token) {
-		await browser.storage.local.set({ discord_token: data.access_token });
+		const expiresAt = Date.now() + data.expires_in * 1000;
+		await browser.storage.local.set({
+			discord_token: data.access_token,
+			discord_refresh_token: data.refresh_token,
+			discord_token_expires_at: expiresAt,
+		});
 		return data.access_token;
 	}
 	throw new Error("Failed to exchange code for token.");
+}
+
+export async function refreshDiscordToken(): Promise<string | null> {
+	const storage = await browser.storage.local.get("discord_refresh_token");
+	if (!storage.discord_refresh_token) return null;
+
+	const body = new URLSearchParams({
+		client_id: APPLICATION_ID,
+		grant_type: "refresh_token",
+		refresh_token: storage.discord_refresh_token as string,
+	});
+
+	try {
+		const res = await fetch("https://discord.com/api/oauth2/token", {
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: body.toString(),
+		});
+		const data = await res.json();
+
+		if (data.access_token) {
+			const expiresAt = Date.now() + data.expires_in * 1000;
+			await browser.storage.local.set({
+				discord_token: data.access_token,
+				discord_refresh_token: data.refresh_token,
+				discord_token_expires_at: expiresAt,
+			});
+			return data.access_token;
+		}
+
+		await browser.storage.local.remove([
+			"discord_token",
+			"discord_refresh_token",
+			"discord_token_expires_at",
+		]);
+		return null;
+	} catch (error) {
+		logger.error("Token Refresh Error:", error);
+		return null;
+	}
 }
 
 export async function processLocalhostRedirect(
