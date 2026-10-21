@@ -1,8 +1,7 @@
 # syntax=docker/dockerfile:1.7
 
-# NODE_VERSION=26 is compatible too too :)
-ARG NODE_VERSION=25
-ARG BUN_VERSION=1.3.14
+ARG NODE_VERSION=26
+ARG BUN_VERSION=1.4.3
 
 FROM node:${NODE_VERSION}-bookworm-slim AS base
 ARG BUN_VERSION
