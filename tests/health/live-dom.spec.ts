@@ -74,12 +74,29 @@ test.describe("Live Production DOM Health Checks", () => {
 				timeout: 15_000,
 			});
 
-			const isCloudflare =
-				(await page
+			const isCloudflare = await Promise.any([
+				page
 					.getByRole("heading", { name: "Performing security verification" })
-					.isVisible()) ||
-				(await page.getByText("Ray ID:").isVisible()) ||
-				(await page.getByText("Verify you are human").isVisible());
+					.waitFor({ timeout: 5000 })
+					.then(() => true)
+					.catch(() => false),
+				page
+					.getByText("Ray ID:")
+					.waitFor({ timeout: 5000 })
+					.then(() => true)
+					.catch(() => false),
+				page
+					.getByText("Verify you are human")
+					.waitFor({ timeout: 5000 })
+					.then(() => true)
+					.catch(() => false),
+				page
+					.locator(site.titleSelector)
+					.first()
+					.waitFor({ timeout: 5000 })
+					.then(() => false)
+					.catch(() => false),
+			]);
 
 			if (isCloudflare) {
 				test.skip(
