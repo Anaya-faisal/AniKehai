@@ -240,8 +240,7 @@ export class DiscordGateway {
 
 		this.lastSentPresenceJson = serializedPayload;
 
-		logger.log(
-			"[Gateway] Sending presence payload:",
+		logger.log("[Gateway] Sending presence payload:", () =>
 			JSON.stringify(payload, null, 2),
 		);
 		this.ws.send(serializedPayload);
