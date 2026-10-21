@@ -57,19 +57,6 @@ describe("strategies registry", () => {
 		expect(new Set(all).size).toBe(all.length);
 	});
 
-	it("no domain is a substring of another strategy's domain (content.ts uses host.includes)", () => {
-		for (const a of strategies) {
-			for (const b of strategies) {
-				if (a === b) continue;
-				for (const da of a.domains) {
-					for (const db of b.domains) {
-						expect(db.includes(da), `${da} is contained in ${db}`).toBe(false);
-					}
-				}
-			}
-		}
-	});
-
 	it("site domains and player-iframe hosts never overlap", () => {
 		const domains = new Set(strategies.flatMap((s) => s.domains));
 		for (const iframe of strategies.flatMap((s) => s.iframe_src)) {

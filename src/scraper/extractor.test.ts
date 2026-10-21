@@ -29,19 +29,20 @@ describe("extractMatches", () => {
 		expect(result).toEqual([
 			"*://a.com/*",
 			"*://b.com/*",
-			"*://c.com/*",
 			"*://player-a.net/*",
+			"*://c.com/*",
 			"*://player-c.net/*",
 			"*://player-d.net/*",
 		]);
 	});
 
-	it("keeps duplicates as-is (callers dedupe if needed)", () => {
+	it("removes duplicate domains and iframe sources automatically", () => {
 		const result = extractMatches([
 			site(["a.com"], ["shared.net"]),
 			site(["b.com"], ["shared.net"]),
 		]);
-		expect(result.filter((m) => m === "*://shared.net/*")).toHaveLength(2);
+
+		expect(result.filter((m) => m === "*://shared.net/*")).toHaveLength(1);
 	});
 
 	it("produces valid match patterns for every real strategy", () => {
