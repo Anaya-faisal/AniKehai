@@ -26,14 +26,15 @@ afterEach(() => {
 });
 
 describe("logger", () => {
-	it("is silent by default", async () => {
+	it("is silent by default for info logs, but prints warn and error", async () => {
 		const logger = await loadLogger();
 		logger.log("a");
 		logger.warn("b");
 		logger.error("c");
+
 		expect(log).not.toHaveBeenCalled();
-		expect(warn).not.toHaveBeenCalled();
-		expect(error).not.toHaveBeenCalled();
+		expect(warn).toHaveBeenCalledWith("[WARN]", "b");
+		expect(error).toHaveBeenCalledWith("[ERROR]", "c");
 	});
 
 	it("logs with level prefixes when enabled in storage", async () => {
@@ -47,10 +48,13 @@ describe("logger", () => {
 		expect(error).toHaveBeenCalledWith("[ERROR]", "boom");
 	});
 
-	it("stays silent when storage explicitly says false", async () => {
+	it("stays silent for info logs when storage explicitly says false, but prints warn and error", async () => {
 		const logger = await loadLogger(false);
+		logger.log("hidden");
 		logger.error("nope");
-		expect(error).not.toHaveBeenCalled();
+
+		expect(log).not.toHaveBeenCalled();
+		expect(error).toHaveBeenCalledWith("[ERROR]", "nope");
 	});
 
 	it("exposes globalThis.enable_logs and persists changes", async () => {
@@ -71,12 +75,31 @@ describe("logger", () => {
 	it("reacts to storage changes made elsewhere (e.g. the popup)", async () => {
 		const logger = await loadLogger();
 		await browser.storage.local.set({ enable_logs: true });
-		logger.warn("enabled remotely");
-		expect(warn).toHaveBeenCalledWith("[WARN]", "enabled remotely");
+		logger.log("enabled remotely");
+		expect(log).toHaveBeenCalledWith("[INFO]", "enabled remotely");
 
 		await browser.storage.local.set({ enable_logs: false });
+		log.mockClear();
+		logger.log("disabled remotely");
+		expect(log).not.toHaveBeenCalled();
+
 		warn.mockClear();
 		logger.warn("disabled remotely");
-		expect(warn).not.toHaveBeenCalled();
+		expect(warn).toHaveBeenCalledWith("[WARN]", "disabled remotely");
+	});
+
+	it("lazily evaluates function arguments only when enabled", async () => {
+		const logger = await loadLogger(false);
+		const expensiveOperation = vi.fn(() => "expensive string");
+
+		logger.log("test", expensiveOperation);
+		expect(expensiveOperation).not.toHaveBeenCalled();
+		expect(log).not.toHaveBeenCalled();
+
+		await browser.storage.local.set({ enable_logs: true });
+		logger.log("test", expensiveOperation);
+
+		expect(expensiveOperation).toHaveBeenCalled();
+		expect(log).toHaveBeenCalledWith("[INFO]", "test", "expensive string");
 	});
 });
