@@ -25,14 +25,21 @@ if (typeof browser !== "undefined" && browser.storage) {
 	});
 }
 
+const evaluate = (arg: unknown) => (typeof arg === "function" ? arg() : arg);
+
 export const logger = {
+	get isEnabled() {
+		return isEnabled;
+	},
 	log: (...args: unknown[]) => {
-		if (isEnabled) console.log("[INFO]", ...args);
+		if (isEnabled) {
+			console.log("[INFO]", ...args.map(evaluate));
+		}
 	},
 	warn: (...args: unknown[]) => {
-		if (isEnabled) console.warn("[WARN]", ...args);
+		console.warn("[WARN]", ...args.map(evaluate));
 	},
 	error: (...args: unknown[]) => {
-		if (isEnabled) console.error("[ERROR]", ...args);
+		console.error("[ERROR]", ...args.map(evaluate));
 	},
 };
