@@ -1,13 +1,19 @@
 import type { AnimeSite } from "../shared/types";
 
-export function extractMatches(strategies: AnimeSite[]) {
-	const domains = strategies
-		.flatMap((stg) => stg.domains)
-		.map((domain) => `*://${domain}/*`);
+export function extractMatches(strategies: AnimeSite[]): string[] {
+	const matches = new Set<string>();
 
-	const iframe_srcs = strategies
-		.flatMap((stg) => stg.iframe_src)
-		.map((src) => `*://${src}/*`);
+	for (const strategy of strategies) {
+		for (const domain of strategy.domains) {
+			matches.add(`*://${domain}/*`);
+		}
 
-	return [...domains, ...iframe_srcs];
+		if (strategy.iframe_src) {
+			for (const src of strategy.iframe_src) {
+				matches.add(`*://${src}/*`);
+			}
+		}
+	}
+
+	return Array.from(matches);
 }
