@@ -1,5 +1,6 @@
 import { Pause } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
+import { useEffect, useState } from "react";
 import type { AnimeState } from "../../../shared/types";
 
 interface NowPlayingCardProps {
@@ -7,6 +8,14 @@ interface NowPlayingCardProps {
 }
 
 export function NowPlayingCard({ anime }: NowPlayingCardProps) {
+	const [imageFailed, setImageFailed] = useState(false);
+
+	useEffect(() => {
+		if (anime.coverUrl !== undefined) {
+			setImageFailed(false);
+		}
+	}, [anime.coverUrl]);
+
 	const episode =
 		anime.episode + (anime.episodeName ? `: ${anime.episodeName}` : "");
 
@@ -21,10 +30,12 @@ export function NowPlayingCard({ anime }: NowPlayingCardProps) {
 				className="flex flex-col items-center"
 			>
 				<div className="relative h-52 w-38 overflow-hidden rounded-2xl border border-white/10 bg-panel-2">
-					{anime.coverUrl ? (
+					{anime.coverUrl && !imageFailed ? (
 						<img
 							src={anime.coverUrl}
 							alt=""
+							referrerPolicy="no-referrer"
+							onError={() => setImageFailed(true)}
 							className="h-full w-full object-cover"
 						/>
 					) : (

@@ -27,6 +27,7 @@ export default function App() {
 		>
 			<div
 				aria-hidden={!status.isAuthenticated}
+				inert={!status.isAuthenticated ? true : undefined}
 				className={
 					status.isAuthenticated
 						? "relative"

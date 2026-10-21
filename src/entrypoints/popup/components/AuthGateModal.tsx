@@ -21,6 +21,8 @@ export function AuthGateModal({
 			className="absolute inset-0 z-10 flex items-center justify-center bg-void/80 px-5 backdrop-blur-sm"
 		>
 			<motion.div
+				role="dialog"
+				aria-modal="true"
 				initial={{ opacity: 0, scale: 0.92, y: 10 }}
 				animate={{ opacity: 1, scale: 1, y: 0 }}
 				exit={{ opacity: 0, scale: 0.94, y: 6 }}
