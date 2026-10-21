@@ -1,14 +1,14 @@
 name: CI
-
 on:
   push:
-    branches: [main, dev]
+    branches:
+      - main
   pull_request:
-
+permissions:
+  contents: read
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: '${{ github.workflow }}-${{ github.ref }}'
   cancel-in-progress: true
-
 jobs:
   quality:
     name: Lint and Typecheck
@@ -16,18 +16,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
-
+          bun-version: 1.4.3
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
       - name: Biome Lint
         run: bunx biome ci .
-
       - name: Typecheck
         run: bun run typecheck
   test:
@@ -37,18 +33,14 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
-
+          bun-version: 1.4.3
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
       - name: Run tests with coverage
-        run: bun run test:coverage
-
+        run: 'bun run test:coverage'
       - name: Upload coverage report
         if: always()
         uses: actions/upload-artifact@v4
@@ -56,7 +48,6 @@ jobs:
           name: coverage-report
           path: coverage/
           if-no-files-found: ignore
-
   e2e:
     name: E2E (Chromium + built extension)
     needs: quality
@@ -64,21 +55,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
-
+          bun-version: 1.4.3
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
       - name: Install Playwright Chromium
-        run: bun run test:e2e:install
-
+        run: 'bun run test:e2e:install'
       - name: Run E2E tests
-        run: bun run test:e2e
-
+        run: 'bun run test:e2e'
       - name: Upload Playwright report
         if: always()
         uses: actions/upload-artifact@v4
@@ -88,35 +74,35 @@ jobs:
             playwright-report/
             test-results/
           if-no-files-found: ignore
-
   build:
-    name: Build Extension (${{ matrix.browser }})
-    needs: [quality, test]
+    name: 'Build Extension (${{ matrix.browser }})'
+    needs:
+      - quality
+      - test
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        browser: [chrome, firefox]
+        browser:
+          - chrome
+          - firefox
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
-
+        with:
+          bun-version: 1.4.3
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
       - name: Build and Zip
-        run: bun run zip:${{ matrix.browser }}
-
+        run: 'bun run zip:${{ matrix.browser }}'
       - name: Prepare Artifacts
         run: |
           mkdir -p artifacts
           mv .output/*.zip artifacts/
-
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: anikehai-${{ matrix.browser }}-build
+          name: 'anikehai-${{ matrix.browser }}-build'
           path: artifacts/*.zip

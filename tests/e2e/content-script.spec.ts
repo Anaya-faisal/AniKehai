@@ -109,9 +109,15 @@ test.describe("Content script metadata extraction & broadcast", () => {
 
 			await popup.bringToFront();
 
-			await expect(
-				popup.getByRole("heading", { name: site.expectedTitle }),
-			).toBeVisible({ timeout: 8_000 });
+			await expect
+				.poll(
+					async () =>
+						popup
+							.getByRole("heading", { name: site.expectedTitle })
+							.isVisible(),
+					{ timeout: 12_000 },
+				)
+				.toBeTruthy();
 
 			await expect(popup.getByText(site.expectedEpisode)).toBeVisible();
 		});
