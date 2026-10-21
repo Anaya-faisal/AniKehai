@@ -3,6 +3,9 @@ import { strategies } from "../scraper/sites";
 import { CHECK_ACTIVITY_INTERVAL } from "../shared/constants";
 import { logger } from "../shared/logger";
 
+const isMatch = (host: string, d: string) =>
+	host === d || host.endsWith(`.${d}`);
+
 export default defineContentScript({
 	matches: [...extractMatches(strategies)],
 	allFrames: true,
@@ -11,14 +14,26 @@ export default defineContentScript({
 		const host = window.location.hostname;
 
 		const metaStrategy = strategies.find((stg) =>
-			stg.domains.some((domain) => host.includes(domain)),
+			stg.domains.some((domain) => isMatch(host, domain)),
 		);
 
 		const iframeStrategy = strategies.find((stg) =>
-			stg.iframe_src.some((src) => host.includes(src)),
+			stg.iframe_src.some((src) => isMatch(host, src)),
 		);
 
 		if (!metaStrategy && !iframeStrategy) return;
+
+		if (iframeStrategy && window !== window.top && !metaStrategy) {
+			try {
+				const parentHost = new URL(document.referrer).hostname;
+				const parentMatches = strategies.some((stg) =>
+					stg.domains.some((domain) => isMatch(parentHost, domain)),
+				);
+				if (!parentMatches) return;
+			} catch {
+				return;
+			}
+		}
 
 		setInterval(() => {
 			try {
