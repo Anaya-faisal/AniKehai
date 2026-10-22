@@ -27,7 +27,7 @@ async function setup() {
 
 beforeEach(() => {
 	mocked.getStatus.mockResolvedValue(status());
-	mocked.loginDiscord.mockResolvedValue({ success: true });
+	mocked.loginDiscord.mockResolvedValue({ status: "token" });
 	mocked.logoutDiscord.mockResolvedValue({ success: true });
 	mocked.setActivityEnabled.mockResolvedValue({ success: true });
 	mocked.setPrivacyEnabled.mockResolvedValue({ success: true });
@@ -97,6 +97,8 @@ describe("currentAnime", () => {
 		episodeName: "Killing Magic",
 		coverUrl: "https://cdn/c.jpg",
 		isPaused: true,
+		currentMs: 0,
+		durationMs: 0,
 	};
 
 	it("maps the playing anime", async () => {
@@ -115,7 +117,7 @@ describe("currentAnime", () => {
 
 	it.each([
 		["null", null],
-		["the 'Unknown' placeholder", { ...anime, title: "Unknown" }],
+		["the null placeholder", { ...anime, title: null as unknown as string }],
 		["an empty title", { ...anime, title: "" }],
 	])("treats %s as nothing playing", async (_l, currentAnime) => {
 		mocked.getStatus.mockResolvedValue(status({ currentAnime }));
@@ -192,7 +194,7 @@ describe("login", () => {
 	});
 
 	it("keeps loading while a mobile login is pending (success without token yet)", async () => {
-		mocked.loginDiscord.mockResolvedValue({ success: true });
+		mocked.loginDiscord.mockResolvedValue({ status: "pending" });
 		const { result } = await setup();
 		await act(() => result.current.login());
 		expect(result.current.isAuthLoading).toBe(true);
@@ -201,7 +203,7 @@ describe("login", () => {
 
 	it("shows the background's error message on failure", async () => {
 		mocked.loginDiscord.mockResolvedValue({
-			success: false,
+			status: "failed",
 			error: "Failed to obtain token.",
 		});
 		const { result } = await setup();
@@ -212,7 +214,7 @@ describe("login", () => {
 	});
 
 	it("uses a generic message when failure has no error text", async () => {
-		mocked.loginDiscord.mockResolvedValue({ success: false });
+		mocked.loginDiscord.mockResolvedValue({ status: "failed" });
 		const { result } = await setup();
 		await act(() => result.current.login());
 		expect(result.current.error).toBe("Login was cancelled or failed.");
@@ -243,6 +245,8 @@ describe("logout", () => {
 					episode: "E1",
 					coverUrl: "",
 					isPaused: false,
+					currentMs: 0,
+					durationMs: 0,
 				},
 			}),
 		);

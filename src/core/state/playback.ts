@@ -1,8 +1,10 @@
-function defaultState() {
+import type { AnimeState } from "../../shared/types";
+
+function defaultState(): AnimeState {
 	return {
-		title: "Unknown",
-		episode: "Unknown",
-		episodeName: "",
+		title: null as unknown as string,
+		episode: null as unknown as string,
+		episodeName: undefined,
 		coverUrl: "",
 		currentMs: 0,
 		durationMs: 0,
@@ -13,10 +15,10 @@ function defaultState() {
 export const currentAnimeState = defaultState();
 
 let lastBroadcast = {
-	title: "",
-	episode: "",
+	title: null as string | null,
+	episode: null as string | null,
 	coverUrl: "",
-	episodeName: "",
+	episodeName: undefined as string | undefined,
 	isPaused: false,
 	estimatedStart: 0,
 	durationMs: 0,
@@ -37,10 +39,10 @@ export function clearAnimeState() {
 	Object.assign(currentAnimeState, defaultState());
 
 	lastBroadcast = {
-		title: "",
-		episode: "",
+		title: null,
+		episode: null,
 		coverUrl: "",
-		episodeName: "",
+		episodeName: undefined,
 		isPaused: false,
 		estimatedStart: 0,
 		durationMs: 0,
@@ -73,9 +75,9 @@ export function evaluateDiscordUpdate(
 		timeDrift > 2500 &&
 		messageType === "TIME_UPDATE";
 
-	const isCurrentEmpty = currentAnimeState.title === "Unknown";
+	const isCurrentEmpty = currentAnimeState.title === null;
 	const isPrevEmpty =
-		lastBroadcast.title === "Unknown" || lastBroadcast.title === "";
+		lastBroadcast.title === null || lastBroadcast.title === "";
 
 	if (isCurrentEmpty && isPrevEmpty) {
 		return { shouldUpdate: false, newEstimatedStart };

@@ -29,4 +29,6 @@ export const ANIME = {
 	episodeName: "Killing Magic",
 	coverUrl: "https://cdn/cover.jpg",
 	isPaused: false,
+	currentMs: 0,
+	durationMs: 0,
 };

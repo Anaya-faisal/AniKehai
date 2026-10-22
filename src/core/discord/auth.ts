@@ -1,5 +1,6 @@
 import { APPLICATION_ID, MOBILE_REDIRECT_URI } from "../../shared/constants";
 import { logger } from "../../shared/logger";
+import type { LoginResponse } from "../../shared/types";
 
 function base64Url(bytes: Uint8Array | ArrayBuffer) {
 	return btoa(String.fromCharCode(...new Uint8Array(bytes)))
@@ -32,7 +33,7 @@ function buildAuthUrl(redirectUri: string, challenge: string) {
 	return authUrl.toString();
 }
 
-export async function loginWithDiscord(): Promise<string | null> {
+export async function loginWithDiscord(): Promise<LoginResponse> {
 	try {
 		const verifier = generateCodeVerifier();
 		const challenge = await generateCodeChallenge(verifier);
@@ -48,18 +49,22 @@ export async function loginWithDiscord(): Promise<string | null> {
 			const code = new URL(responseUrl).searchParams.get("code");
 			if (!code) throw new Error("No authorization code returned.");
 
-			return await exchangeCodeForToken(code, redirectUri, verifier);
+			await exchangeCodeForToken(code, redirectUri, verifier);
+			return { status: "token" };
 		} else {
 			await browser.storage.local.set({ mobile_oauth_verifier: verifier });
 			await browser.tabs.create({
 				url: buildAuthUrl(MOBILE_REDIRECT_URI, challenge),
 			});
 
-			return "mobile_pending";
+			return { status: "pending" };
 		}
 	} catch (error) {
 		logger.error("Auth Error:", error);
-		return null;
+		return {
+			status: "failed",
+			error: error instanceof Error ? error.message : "Auth Error",
+		};
 	}
 }
 

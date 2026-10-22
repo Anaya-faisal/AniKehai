@@ -41,13 +41,15 @@ export function useExtensionStatus() {
 			}
 
 			const anime = res.currentAnime;
-			if (anime?.title && anime.title !== "Unknown") {
+			if (anime?.title) {
 				setCurrentAnime({
 					title: anime.title,
 					episode: anime.episode,
 					episodeName: anime.episodeName,
 					coverUrl: anime.coverUrl,
 					isPaused: !!anime.isPaused,
+					currentMs: anime.currentMs,
+					durationMs: anime.durationMs,
 				});
 			} else {
 				setCurrentAnime(null);
@@ -72,7 +74,7 @@ export function useExtensionStatus() {
 		setError(null);
 		try {
 			const res = await loginDiscord();
-			if (!res?.success) {
+			if (res?.status === "failed") {
 				setError(res?.error ?? "Login was cancelled or failed.");
 				setIsAuthLoading(false);
 			}

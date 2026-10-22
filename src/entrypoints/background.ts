@@ -19,6 +19,7 @@ import {
 	RESET_ACTIVITY_TIMEOUT,
 } from "../shared/constants";
 import { logger } from "../shared/logger";
+import type { RuntimeMessage } from "../shared/types";
 
 export default defineBackground(() => {
 	const gateway = new DiscordGateway();
@@ -39,7 +40,7 @@ export default defineBackground(() => {
 		});
 
 	function publishPresence(context: string) {
-		if (currentAnimeState.title === "Unknown") return;
+		if (currentAnimeState.title === null) return;
 
 		const type = currentAnimeState.isPaused
 			? ("PAUSED" as const)
@@ -70,7 +71,7 @@ export default defineBackground(() => {
 	function resetActivityTimeout() {
 		if (activityTimeout) clearTimeout(activityTimeout);
 		activityTimeout = setTimeout(() => {
-			if (currentAnimeState.title !== "Unknown") {
+			if (currentAnimeState.title !== null) {
 				gateway
 					.setActivity({ type: "STOPPED", ...currentAnimeState })
 					.catch((err) => logger.error("[setActivity/timeout]", err));
@@ -132,152 +133,155 @@ export default defineBackground(() => {
 		}
 	});
 
-	browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-		const handleMessage = async () => {
-			await settingsReady;
+	browser.runtime.onMessage.addListener(
+		(message: RuntimeMessage, sender, sendResponse) => {
+			const handleMessage = async () => {
+				await settingsReady;
 
-			if (message.type === "LOGIN_DISCORD") {
-				await browser.storage.local.remove("auth_error");
+				if (message.type === "LOGIN_DISCORD") {
+					await browser.storage.local.remove("auth_error");
 
-				try {
-					const token = await loginWithDiscord();
-					if (token === "mobile_pending") {
-						sendResponse({ success: true, pending: true });
-					} else if (token) {
-						await gateway.connect();
-						sendResponse({ success: true });
-					} else {
-						sendResponse({ success: false, error: "Failed to obtain token." });
+					try {
+						const result = await loginWithDiscord();
+						if (result.status === "token") {
+							await gateway.connect();
+							sendResponse({ status: "token" });
+						} else {
+							sendResponse(result);
+						}
+					} catch (err) {
+						sendResponse({
+							status: "failed",
+							error: err instanceof Error ? err.message : "Error",
+						});
 					}
-				} catch (err) {
-					sendResponse({
-						success: false,
-						error: err instanceof Error ? err.message : "Error",
-					});
+					return;
 				}
-				return;
-			}
 
-			if (message.type === "LOGOUT_DISCORD") {
-				gateway.disconnect();
-				isLoggingOut = true;
-				try {
-					await browser.storage.local.remove([
-						"discord_token",
-						"discord_refresh_token",
-						"discord_token_expires_at",
-					]);
-				} finally {
-					isLoggingOut = false;
-				}
-				sendResponse({ success: true });
-				return;
-			}
-
-			if (message.type === "SET_ACTIVITY_ENABLED") {
-				setActivityEnabledFlag(!!message.enabled);
-				await browser.storage.local.set({ activity_enabled: activityEnabled });
-				if (!activityEnabled) {
-					if (activityTimeout) clearTimeout(activityTimeout);
-					if (currentAnimeState.title !== "Unknown") {
-						gateway
-							.setActivity({ type: "STOPPED", ...currentAnimeState })
-							.catch((err) => logger.error("[setActivity/toggle]", err));
+				if (message.type === "LOGOUT_DISCORD") {
+					gateway.disconnect();
+					isLoggingOut = true;
+					try {
+						await browser.storage.local.remove([
+							"discord_token",
+							"discord_refresh_token",
+							"discord_token_expires_at",
+						]);
+					} finally {
+						isLoggingOut = false;
 					}
-					clearAnimeState();
-				}
-				sendResponse({ success: true });
-				return;
-			}
-
-			if (message.type === "SET_PRIVACY_ENABLED") {
-				setPrivacyEnabledFlag(!!message.enabled);
-				await browser.storage.local.set({ privacy_enabled: privacyEnabled });
-
-				if (!activityEnabled) {
 					sendResponse({ success: true });
 					return;
 				}
 
-				publishPresence("setPrivacy/toggle");
-				sendResponse({ success: true });
-				return;
-			}
-
-			if (message.type === "GET_STATUS") {
-				const storage = await browser.storage.local.get([
-					"discord_token",
-					"auth_error",
-				]);
-				sendResponse({
-					hasToken:
-						typeof storage.discord_token === "string" &&
-						!!storage.discord_token,
-					isGatewayReady: gateway.isConnected(),
-					activityEnabled,
-					privacyEnabled,
-					authError: storage.auth_error || null,
-					currentAnime: currentAnimeState,
-				});
-				return;
-			}
-
-			if (!sender.tab?.active) return;
-
-			if (message.type === "STOPPED") {
-				if (currentAnimeState.title !== "Unknown") {
-					gateway
-						.setActivity({ type: "STOPPED", ...currentAnimeState })
-						.catch((err) => logger.error("[setActivity/stopped]", err));
+				if (message.type === "SET_ACTIVITY_ENABLED") {
+					setActivityEnabledFlag(!!message.enabled);
+					await browser.storage.local.set({
+						activity_enabled: activityEnabled,
+					});
+					if (!activityEnabled) {
+						if (activityTimeout) clearTimeout(activityTimeout);
+						if (currentAnimeState.title !== null) {
+							gateway
+								.setActivity({ type: "STOPPED", ...currentAnimeState })
+								.catch((err) => logger.error("[setActivity/toggle]", err));
+						}
+						clearAnimeState();
+					}
+					sendResponse({ success: true });
+					return;
 				}
-				if (activityTimeout) clearTimeout(activityTimeout);
-				clearAnimeState();
-				return;
+
+				if (message.type === "SET_PRIVACY_ENABLED") {
+					setPrivacyEnabledFlag(!!message.enabled);
+					await browser.storage.local.set({ privacy_enabled: privacyEnabled });
+
+					if (!activityEnabled) {
+						sendResponse({ success: true });
+						return;
+					}
+
+					publishPresence("setPrivacy/toggle");
+					sendResponse({ success: true });
+					return;
+				}
+
+				if (message.type === "GET_STATUS") {
+					const storage = await browser.storage.local.get([
+						"discord_token",
+						"auth_error",
+					]);
+					sendResponse({
+						hasToken:
+							typeof storage.discord_token === "string" &&
+							!!storage.discord_token,
+						isGatewayReady: gateway.isConnected(),
+						activityEnabled,
+						privacyEnabled,
+						authError: storage.auth_error || null,
+						currentAnime:
+							currentAnimeState.title !== null ? currentAnimeState : null,
+					});
+					return;
+				}
+
+				if (!sender.tab?.active) return;
+
+				if (message.type === "STOPPED") {
+					if (currentAnimeState.title !== null) {
+						gateway
+							.setActivity({ type: "STOPPED", ...currentAnimeState })
+							.catch((err) => logger.error("[setActivity/stopped]", err));
+					}
+					if (activityTimeout) clearTimeout(activityTimeout);
+					clearAnimeState();
+					return;
+				}
+
+				if (message.type === "FETCH_ANILIST") {
+					const coverUrl = await fetchAnilistCover(message.anilistId);
+					sendResponse({ coverUrl });
+					return;
+				}
+
+				if (message.type === "INFO_UPDATE") {
+					currentAnimeState.title = message.title;
+					currentAnimeState.episode = message.episode;
+					currentAnimeState.episodeName = message.episodeName ?? undefined;
+					currentAnimeState.coverUrl = message.coverUrl ?? "";
+				} else if (message.type === "TIME_UPDATE") {
+					currentAnimeState.currentMs = message.currentMs;
+					currentAnimeState.durationMs = message.durationMs;
+					currentAnimeState.isPaused = message.isPaused;
+				} else {
+					return;
+				}
+
+				if (!activityEnabled) return;
+				resetActivityTimeout();
+
+				const { shouldUpdate, newEstimatedStart } = evaluateDiscordUpdate(
+					message.type,
+				);
+
+				if (!shouldUpdate) return;
+				commitBroadcast(newEstimatedStart);
+
+				publishPresence("setActivity/update");
+			};
+
+			handleMessage();
+
+			if (
+				message.type === "LOGIN_DISCORD" ||
+				message.type === "LOGOUT_DISCORD" ||
+				message.type === "SET_ACTIVITY_ENABLED" ||
+				message.type === "SET_PRIVACY_ENABLED" ||
+				message.type === "GET_STATUS" ||
+				message.type === "FETCH_ANILIST"
+			) {
+				return true;
 			}
-
-			if (message.type === "FETCH_ANILIST") {
-				const coverUrl = await fetchAnilistCover(message.anilistId);
-				sendResponse({ coverUrl });
-				return;
-			}
-
-			if (message.type === "INFO_UPDATE") {
-				currentAnimeState.title = message.title;
-				currentAnimeState.episode = message.episode;
-				currentAnimeState.episodeName = message.episodeName;
-				currentAnimeState.coverUrl = message.coverUrl;
-			} else if (message.type === "TIME_UPDATE") {
-				currentAnimeState.currentMs = message.currentMs;
-				currentAnimeState.durationMs = message.durationMs;
-				currentAnimeState.isPaused = message.isPaused;
-			} else {
-				return;
-			}
-
-			if (!activityEnabled) return;
-			resetActivityTimeout();
-
-			const { shouldUpdate, newEstimatedStart } = evaluateDiscordUpdate(
-				message.type,
-			);
-
-			if (!shouldUpdate) return;
-			commitBroadcast(newEstimatedStart);
-
-			publishPresence("setActivity/update");
-		};
-
-		handleMessage();
-
-		if (
-			message.type === "LOGIN_DISCORD" ||
-			message.type === "LOGOUT_DISCORD" ||
-			message.type === "SET_ACTIVITY_ENABLED" ||
-			message.type === "SET_PRIVACY_ENABLED" ||
-			message.type === "GET_STATUS" ||
-			message.type === "FETCH_ANILIST"
-		) {
-			return true;
-		}
-	});
+		},
+	);
 });

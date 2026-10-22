@@ -22,7 +22,7 @@ const status = (patch: Partial<StatusResponse> = {}): StatusResponse => ({
 
 beforeEach(() => {
 	mocked.getStatus.mockResolvedValue(status());
-	mocked.loginDiscord.mockResolvedValue({ success: true });
+	mocked.loginDiscord.mockResolvedValue({ status: "token" });
 	mocked.logoutDiscord.mockResolvedValue({ success: true });
 	mocked.setActivityEnabled.mockResolvedValue({ success: true });
 	mocked.setPrivacyEnabled.mockResolvedValue({ success: true });
@@ -46,6 +46,8 @@ describe("<App /> (popup integration)", () => {
 					episodeName: "Killing Magic",
 					coverUrl: "",
 					isPaused: false,
+					currentMs: 0,
+					durationMs: 0,
 				},
 			}),
 		);
@@ -83,7 +85,7 @@ describe("<App /> (popup integration)", () => {
 	it("shows the login error returned by the background", async () => {
 		mocked.getStatus.mockResolvedValue(status({ hasToken: false }));
 		mocked.loginDiscord.mockResolvedValue({
-			success: false,
+			status: "failed",
 			error: "Failed to obtain token.",
 		});
 		render(<App />);
