@@ -1,6 +1,8 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fakeBrowser } from "wxt/testing/fake-browser";
+import { version } from "../../package.json";
 import App from "../../src/entrypoints/popup/App";
 import * as messages from "../../src/entrypoints/popup/lib/runtime-messages";
 import type { StatusResponse } from "../../src/shared/types";
@@ -21,6 +23,9 @@ const status = (patch: Partial<StatusResponse> = {}): StatusResponse => ({
 });
 
 beforeEach(() => {
+	vi.spyOn(fakeBrowser.runtime, "getManifest").mockReturnValue({
+		version,
+	} as never);
 	mocked.getStatus.mockResolvedValue(status());
 	mocked.loginDiscord.mockResolvedValue({ status: "token" });
 	mocked.logoutDiscord.mockResolvedValue({ success: true });
