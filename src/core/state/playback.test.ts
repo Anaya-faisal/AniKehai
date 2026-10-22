@@ -47,9 +47,9 @@ describe("clearAnimeState", () => {
 		clearAnimeState();
 
 		expect(currentAnimeState).toEqual({
-			title: "Unknown",
-			episode: "Unknown",
-			episodeName: "",
+			title: null,
+			episode: null,
+			episodeName: undefined,
 			coverUrl: "",
 			currentMs: 0,
 			durationMs: 0,
