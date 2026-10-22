@@ -175,6 +175,20 @@ describe("handshake", () => {
 		vi.advanceTimersByTime(10_000);
 		expect(ws.sentPayloads.filter((p) => p.op === 1)).toHaveLength(1);
 	});
+
+	it("tracks the sequence number 's' and sends it in heartbeats", async () => {
+		const ws = await connectAndReady();
+		ws.serverSend({ op: 0, t: "MESSAGE_CREATE", d: {}, s: 42 });
+
+		vi.advanceTimersByTime(41_250);
+		const heartbeats = ws.sentPayloads.filter((p) => p.op === 1);
+		expect(heartbeats.at(-1)).toEqual({ op: 1, d: 42 });
+	});
+
+	it("ignores heartbeat ACKs (op 11) silently", async () => {
+		const ws = await connectAndReady();
+		expect(() => ws.serverSend({ op: 11 })).not.toThrow();
+	});
 });
 
 describe("disconnect handling", () => {
@@ -195,6 +209,34 @@ describe("disconnect handling", () => {
 		gateway.disconnect();
 		await vi.advanceTimersByTimeAsync(120_000);
 		expect(FakeWebSocket.instances).toHaveLength(1);
+	});
+
+	it("ignores events from a stale socket after reconnecting", async () => {
+		await connectAndReady();
+		const firstSocket = FakeWebSocket.last;
+
+		gateway.disconnect();
+		await gateway.connect();
+
+		const secondSocket = FakeWebSocket.last;
+		secondSocket.serverOpen();
+		secondSocket.serverSend({ op: 10, d: { heartbeat_interval: 1000 } });
+		secondSocket.serverSend({ op: 0, t: "READY", d: {} });
+
+		firstSocket.serverClose(1006);
+		await vi.advanceTimersByTimeAsync(1000);
+
+		expect(gateway.isConnected()).toBe(true);
+		expect(FakeWebSocket.instances).toHaveLength(2);
+	});
+
+	it("reconnects immediately when receiving op 7 (Reconnect)", async () => {
+		const ws = await connectAndReady();
+		ws.serverSend({ op: 7 });
+		await vi.advanceTimersByTimeAsync(0);
+
+		expect(ws.closeCalls).toBe(1);
+		expect(FakeWebSocket.instances).toHaveLength(2);
 	});
 
 	it("reconnects after an unexpected close, with exponential backoff (1s, 2s, 4s)", async () => {
