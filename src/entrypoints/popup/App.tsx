@@ -2,7 +2,6 @@ import { AnimatePresence, motion } from "motion/react";
 import { AppShell } from "./components/AppShell";
 import { AuthGateModal } from "./components/AuthGateModal";
 import { useExtensionStatus } from "./hooks/useExtensionStatus";
-import "./style.css";
 
 export default function App() {
 	const status = useExtensionStatus();
