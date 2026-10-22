@@ -29,7 +29,7 @@ test.describe("popup (real extension, real Chromium)", () => {
 		await expect(
 			popup.getByRole("button", { name: "Link with Discord" }),
 		).toHaveCount(0);
-		await expect(popup.getByText("Tuning in")).toBeVisible();
+		await expect(popup.getByText("Connecting")).toBeVisible();
 	});
 
 	test("settings: broadcast toggle persists to extension storage", async ({
