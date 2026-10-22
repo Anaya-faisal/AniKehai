@@ -1,23 +1,35 @@
-import { APPLICATION_ID } from "../../shared/constants";
+import { APPLICATION_ID, MOBILE_REDIRECT_URI } from "../../shared/constants";
 import { logger } from "../../shared/logger";
+
+function base64Url(bytes: Uint8Array | ArrayBuffer) {
+	return btoa(String.fromCharCode(...new Uint8Array(bytes)))
+		.replace(/\+/g, "-")
+		.replace(/\//g, "_")
+		.replace(/=+$/, "");
+}
 
 function generateCodeVerifier() {
 	const array = new Uint8Array(32);
 	crypto.getRandomValues(array);
-	return btoa(String.fromCharCode(...array))
-		.replace(/\+/g, "-")
-		.replace(/\//g, "_")
-		.replace(/=+$/, "");
+	return base64Url(array);
 }
 
 async function generateCodeChallenge(verifier: string) {
 	const encoder = new TextEncoder();
 	const data = encoder.encode(verifier);
 	const digest = await crypto.subtle.digest("SHA-256", data);
-	return btoa(String.fromCharCode(...new Uint8Array(digest)))
-		.replace(/\+/g, "-")
-		.replace(/\//g, "_")
-		.replace(/=+$/, "");
+	return base64Url(digest);
+}
+
+function buildAuthUrl(redirectUri: string, challenge: string) {
+	const authUrl = new URL("https://discord.com/oauth2/authorize");
+	authUrl.searchParams.set("client_id", APPLICATION_ID);
+	authUrl.searchParams.set("response_type", "code");
+	authUrl.searchParams.set("redirect_uri", redirectUri);
+	authUrl.searchParams.set("scope", "openid sdk.social_layer_presence");
+	authUrl.searchParams.set("code_challenge", challenge);
+	authUrl.searchParams.set("code_challenge_method", "S256");
+	return authUrl.toString();
 }
 
 export async function loginWithDiscord(): Promise<string | null> {
@@ -28,16 +40,8 @@ export async function loginWithDiscord(): Promise<string | null> {
 		if (browser?.identity?.getRedirectURL) {
 			const redirectUri = browser.identity.getRedirectURL();
 
-			const authUrl = new URL("https://discord.com/oauth2/authorize");
-			authUrl.searchParams.set("client_id", APPLICATION_ID);
-			authUrl.searchParams.set("response_type", "code");
-			authUrl.searchParams.set("redirect_uri", redirectUri);
-			authUrl.searchParams.set("scope", "openid sdk.social_layer_presence");
-			authUrl.searchParams.set("code_challenge", challenge);
-			authUrl.searchParams.set("code_challenge_method", "S256");
-
 			const responseUrl = await browser.identity.launchWebAuthFlow({
-				url: authUrl.toString(),
+				url: buildAuthUrl(redirectUri, challenge),
 				interactive: true,
 			});
 			if (!responseUrl) throw new Error("No response url generated.");
@@ -46,19 +50,10 @@ export async function loginWithDiscord(): Promise<string | null> {
 
 			return await exchangeCodeForToken(code, redirectUri, verifier);
 		} else {
-			const mobileRedirectUri = "http://127.0.0.1/discord-auth";
-
 			await browser.storage.local.set({ mobile_oauth_verifier: verifier });
-
-			const authUrl = new URL("https://discord.com/oauth2/authorize");
-			authUrl.searchParams.set("client_id", APPLICATION_ID);
-			authUrl.searchParams.set("response_type", "code");
-			authUrl.searchParams.set("redirect_uri", mobileRedirectUri);
-			authUrl.searchParams.set("scope", "openid sdk.social_layer_presence");
-			authUrl.searchParams.set("code_challenge", challenge);
-			authUrl.searchParams.set("code_challenge_method", "S256");
-
-			await browser.tabs.create({ url: authUrl.toString() });
+			await browser.tabs.create({
+				url: buildAuthUrl(MOBILE_REDIRECT_URI, challenge),
+			});
 
 			return "mobile_pending";
 		}
@@ -178,7 +173,7 @@ export async function processLocalhostRedirect(
 
 		const token = await exchangeCodeForToken(
 			code,
-			"http://127.0.0.1/discord-auth",
+			MOBILE_REDIRECT_URI,
 			verifier,
 		);
 		await browser.storage.local.remove("mobile_oauth_verifier");
