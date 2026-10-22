@@ -45,7 +45,6 @@ describe("strategies registry", () => {
 		it("returns well-formed progress stats on a page without a player", () => {
 			expect(strategy.getProgressStats()).toEqual({
 				currentMs: 0,
-				remainingMs: 0,
 				durationMs: 0,
 				isPaused: null,
 			});

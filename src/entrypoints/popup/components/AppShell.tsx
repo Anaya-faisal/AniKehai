@@ -1,5 +1,4 @@
 import { AnimatePresence, motion } from "motion/react";
-import { EXTENSION_VERSION } from "../../../shared/constants";
 import type { ExtensionStatus } from "../hooks/useExtensionStatus";
 import { InkDivider } from "./decor/InkDivider";
 import { Header } from "./Header";
@@ -64,7 +63,7 @@ export function AppShell({ status }: AppShellProps) {
 			</div>
 
 			<div className="mt-auto pt-6 text-center text-[10.5px] text-muted/70">
-				AniKehai · v{EXTENSION_VERSION}
+				AniKehai · v{browser.runtime.getManifest().version}
 			</div>
 		</div>
 	);

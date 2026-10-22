@@ -50,7 +50,6 @@ export function getStandardVideoStats() {
 		return {
 			currentMs: current,
 			durationMs: duration,
-			remainingMs: Math.max(0, duration - current),
 			isPaused: videoElement.paused || videoElement.ended,
 		};
 	}
@@ -65,7 +64,6 @@ export function getStandardVideoStats() {
 
 		return {
 			currentMs,
-			remainingMs,
 			durationMs: currentMs + remainingMs,
 			isPaused: !!pausedElement,
 		};
@@ -73,7 +71,6 @@ export function getStandardVideoStats() {
 
 	return {
 		currentMs: 0,
-		remainingMs: 0,
 		durationMs: 0,
 		isPaused: null,
 	};

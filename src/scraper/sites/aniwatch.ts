@@ -23,11 +23,10 @@ export const aniwatchStrategy: AnimeSite = {
 		const coverUrl = imageElement?.src;
 
 		return {
-			title: titleElement ? title : null,
-			episode: episodeElement ? episode : null,
-			episodeName:
-				episodeNameElement && episode !== episodeName ? episodeName : null,
-			coverUrl: coverUrl ? coverUrl : null,
+			title: title ?? null,
+			episode: episode ?? null,
+			episodeName: episodeName && episode !== episodeName ? episodeName : null,
+			coverUrl: coverUrl ?? null,
 		};
 	},
 

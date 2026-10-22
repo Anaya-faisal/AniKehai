@@ -80,7 +80,6 @@ export const animexStrategy: AnimeSite = {
 		return {
 			currentMs,
 			durationMs,
-			remainingMs: Math.max(0, durationMs - currentMs),
 			isPaused: video.paused || video.ended,
 		};
 	},

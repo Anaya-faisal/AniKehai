@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fakeBrowser } from "wxt/testing/fake-browser";
+import { version } from "../../package.json";
 import { AppShell } from "../../src/entrypoints/popup/components/AppShell";
 import { AuthGateModal } from "../../src/entrypoints/popup/components/AuthGateModal";
 import { InkDivider } from "../../src/entrypoints/popup/components/decor/InkDivider";
@@ -10,11 +12,14 @@ import { NowPlayingCard } from "../../src/entrypoints/popup/components/NowPlayin
 import { SettingsView } from "../../src/entrypoints/popup/components/SettingsView";
 import { StatusBadge } from "../../src/entrypoints/popup/components/StatusBadge";
 import { ToggleSwitch } from "../../src/entrypoints/popup/components/ToggleSwitch";
-import {
-	DISCORD_SERVER_URL,
-	EXTENSION_VERSION,
-} from "../../src/shared/constants";
+import { DISCORD_SERVER_URL } from "../../src/shared/constants";
 import { ANIME, makeStatus } from "../helpers/status";
+
+beforeEach(() => {
+	vi.spyOn(fakeBrowser.runtime, "getManifest").mockReturnValue({
+		version,
+	} as never);
+});
 
 describe("ToggleSwitch", () => {
 	it("exposes an accessible switch reflecting `checked`", () => {
@@ -63,13 +68,9 @@ describe("ToggleSwitch", () => {
 });
 
 describe("StatusBadge", () => {
-	it.each([
-		["live", "On air"],
-		["connecting", "Tuning in"],
-		["offline", "Off air"],
-	] as const)("%s shows '%s'", (state, label) => {
-		render(<StatusBadge state={state} />);
-		expect(screen.getByText(label)).toBeInTheDocument();
+	it("connecting shows 'Connecting'", () => {
+		render(<StatusBadge />);
+		expect(screen.getByText("Connecting")).toBeInTheDocument();
 	});
 });
 
@@ -157,7 +158,7 @@ describe("Header", () => {
 		const { rerender } = render(
 			<Header state="connecting" view="home" onToggleSettings={() => {}} />,
 		);
-		expect(screen.getByText("Tuning in")).toBeInTheDocument();
+		expect(screen.getByText("Connecting")).toBeInTheDocument();
 
 		rerender(<Header state="live" view="home" onToggleSettings={() => {}} />);
 		expect(screen.queryByText("On air")).not.toBeInTheDocument();
@@ -313,20 +314,16 @@ describe("AppShell", () => {
 
 	it("shows the 'connecting' badge while authenticated but the gateway isn't ready", () => {
 		render(<AppShell status={makeStatus({ isGatewayReady: false })} />);
-		expect(screen.getByText("Tuning in")).toBeInTheDocument();
+		expect(screen.getByText("Connecting")).toBeInTheDocument();
 	});
 
 	it("shows no badge when live", () => {
 		render(<AppShell status={makeStatus({ isGatewayReady: true })} />);
-		expect(screen.queryByText("Tuning in")).not.toBeInTheDocument();
+		expect(screen.queryByText("Connecting")).not.toBeInTheDocument();
 	});
 
 	it("shows the extension version in the footer", () => {
 		render(<AppShell status={makeStatus()} />);
-		expect(
-			screen.getByText(
-				new RegExp(`v${EXTENSION_VERSION.replace(/\./g, "\\.")}`),
-			),
-		).toBeInTheDocument();
+		expect(screen.getByText(`AniKehai · v${version}`)).toBeInTheDocument();
 	});
 });

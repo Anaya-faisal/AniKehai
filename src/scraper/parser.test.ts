@@ -42,7 +42,6 @@ describe("getStandardVideoStats", () => {
 		expect(getStandardVideoStats()).toEqual({
 			currentMs: 60_200,
 			durationMs: 1_440_500,
-			remainingMs: 1_380_300,
 			isPaused: true,
 		});
 	});
@@ -67,18 +66,7 @@ describe("getStandardVideoStats", () => {
 		expect(getStandardVideoStats()).toMatchObject({
 			currentMs: 0,
 			durationMs: 0,
-			remainingMs: 0,
 		});
-	});
-
-	it("never reports negative remaining time", () => {
-		setBody("<video></video>");
-		mockVideo(document.querySelector("video") as HTMLVideoElement, {
-			duration: 10,
-			currentTime: 12,
-			paused: false,
-		});
-		expect(getStandardVideoStats().remainingMs).toBe(0);
 	});
 
 	it("prefers <video> over JW Player text when both exist", () => {
@@ -102,7 +90,6 @@ describe("getStandardVideoStats", () => {
 
 		expect(getStandardVideoStats()).toEqual({
 			currentMs: 60_000,
-			remainingMs: 1_380_000,
 			durationMs: 1_440_000,
 			isPaused: true,
 		});
@@ -119,7 +106,6 @@ describe("getStandardVideoStats", () => {
 		setBody("<div>nothing here</div>");
 		expect(getStandardVideoStats()).toEqual({
 			currentMs: 0,
-			remainingMs: 0,
 			durationMs: 0,
 			isPaused: null,
 		});
