@@ -35,6 +35,35 @@ export default defineBackground(() => {
 			}
 		});
 
+	function publishPresence(context: string) {
+		if (currentAnimeState.title === "Unknown") return;
+
+		const type = currentAnimeState.isPaused
+			? ("PAUSED" as const)
+			: ("WATCHING" as const);
+
+		if (privacyEnabled) {
+			gateway
+				.setActivity({
+					type,
+					title: "Anime",
+					episode: "Private Session",
+					coverUrl: "",
+					currentMs: 0,
+					durationMs: 0,
+					isPaused: currentAnimeState.isPaused,
+				})
+				.catch((err) => logger.error(`[${context}]`, err));
+		} else {
+			gateway
+				.setActivity({
+					type,
+					...currentAnimeState,
+				})
+				.catch((err) => logger.error(`[${context}]`, err));
+		}
+	}
+
 	function resetActivityTimeout() {
 		if (activityTimeout) clearTimeout(activityTimeout);
 		activityTimeout = setTimeout(() => {
@@ -167,28 +196,7 @@ export default defineBackground(() => {
 					return;
 				}
 
-				if (currentAnimeState.title !== "Unknown") {
-					if (privacyEnabled) {
-						gateway
-							.setActivity({
-								type: currentAnimeState.isPaused ? "PAUSED" : "WATCHING",
-								title: "Anime",
-								episode: "Private Session",
-								coverUrl: "",
-								currentMs: 0,
-								durationMs: 0,
-								isPaused: currentAnimeState.isPaused,
-							})
-							.catch((err) => logger.error("[setPrivacy/toggle]", err));
-					} else {
-						gateway
-							.setActivity({
-								type: currentAnimeState.isPaused ? "PAUSED" : "WATCHING",
-								...currentAnimeState,
-							})
-							.catch((err) => logger.error("[setPrivacy/toggle]", err));
-					}
-				}
+				publishPresence("setPrivacy/toggle");
 				sendResponse({ success: true });
 				return;
 			}
@@ -253,26 +261,7 @@ export default defineBackground(() => {
 			if (!shouldUpdate) return;
 			commitBroadcast(newEstimatedStart);
 
-			if (!privacyEnabled) {
-				gateway
-					.setActivity({
-						type: currentAnimeState.isPaused ? "PAUSED" : "WATCHING",
-						...currentAnimeState,
-					})
-					.catch((err) => logger.error("[setActivity/update]", err));
-			} else {
-				gateway
-					.setActivity({
-						type: currentAnimeState.isPaused ? "PAUSED" : "WATCHING",
-						title: "Anime",
-						episode: "Private Session",
-						coverUrl: "",
-						currentMs: 0,
-						durationMs: 0,
-						isPaused: currentAnimeState.isPaused,
-					})
-					.catch((err) => logger.error("[setActivity/update]", err));
-			}
+			publishPresence("setActivity/update");
 		};
 
 		handleMessage();
