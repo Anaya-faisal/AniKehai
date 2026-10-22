@@ -13,11 +13,13 @@ export class DiscordGateway {
 	private reconnectAttempts = 0;
 	private lastSentPresenceJson: string | null = null;
 	private presenceQueue: Promise<void> = Promise.resolve();
+	private seq: number | null = null;
 
 	async connect() {
 		this.isManualDisconnect = false;
 		this.lastSentPresenceJson = null;
 		this.presenceQueue = Promise.resolve();
+		this.seq = null;
 
 		const storage = await browser.storage.local.get([
 			"discord_token",
@@ -48,20 +50,40 @@ export class DiscordGateway {
 			return;
 		}
 
-		this.ws = new WebSocket("wss://gateway.discord.gg/?v=10&encoding=json");
+		const currentWs = new WebSocket(
+			"wss://gateway.discord.gg/?v=10&encoding=json",
+		);
+		this.ws = currentWs;
 
-		this.ws.onopen = () => {
+		currentWs.onopen = () => {
+			if (this.ws !== currentWs) return;
 			logger.log("[Gateway] Connected to WebSocket");
 		};
 
-		this.ws.onmessage = (event) => {
+		currentWs.onmessage = (event) => {
+			if (this.ws !== currentWs) return;
 			const payload = JSON.parse(event.data);
-			const { op, t, d } = payload;
+			const { op, t, d, s } = payload;
+
+			if (s !== undefined && s !== null) {
+				this.seq = s;
+			}
 
 			if (op === 10) {
 				const interval = d.heartbeat_interval;
 				this.startHeartbeat(interval);
 				this.identify();
+			}
+
+			if (op === 11) {
+				logger.log("[Gateway] Heartbeat ACK received");
+			}
+
+			if (op === 7) {
+				logger.warn("[Gateway] Server requested reconnect (op 7)");
+				this.disconnect();
+				this.connect();
+				return;
 			}
 
 			if (op === 0 && t === "READY") {
@@ -77,7 +99,8 @@ export class DiscordGateway {
 			}
 		};
 
-		this.ws.onclose = async (event: CloseEvent) => {
+		currentWs.onclose = async (event: CloseEvent) => {
+			if (this.ws !== currentWs) return;
 			this.isReady = false;
 			this.stopHeartbeat();
 
@@ -110,7 +133,7 @@ export class DiscordGateway {
 		this.stopHeartbeat();
 		this.heartbeatInterval = setInterval(() => {
 			if (this.ws?.readyState === WebSocket.OPEN) {
-				this.ws.send(JSON.stringify({ op: 1, d: null }));
+				this.ws.send(JSON.stringify({ op: 1, d: this.seq }));
 			}
 		}, interval);
 	}
