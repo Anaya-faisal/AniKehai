@@ -45,7 +45,6 @@ export interface AnimeMetadata {
 
 export interface ProgressStats {
 	currentMs: number | null | undefined;
-	remainingMs: number | null | undefined;
 	durationMs: number | null | undefined;
 	isPaused: boolean | null | undefined;
 }
