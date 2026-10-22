@@ -700,3 +700,37 @@ describe("messages from content scripts", () => {
 		});
 	});
 });
+
+describe("LOGOUT_DISCORD", () => {
+	it("disconnects the gateway, deletes the token and replies without re-auth prompt", async () => {
+		await startBackground();
+		await browser.storage.local.set({ discord_token: "tok" });
+		const create = vi.spyOn(browser.tabs, "create");
+
+		const { sendResponse, returned } = await dispatch({
+			type: "LOGOUT_DISCORD",
+		});
+
+		expect(returned).toBe(true);
+		expect(gateway.disconnect).toHaveBeenCalledTimes(1);
+		expect(
+			(await browser.storage.local.get("discord_token")).discord_token,
+		).toBeUndefined();
+		expect(sendResponse).toHaveBeenCalledWith({ success: true });
+		expect(create).not.toHaveBeenCalled();
+	});
+
+	it("clears presence (STOPPED) and state before disconnecting if watching", async () => {
+		await startBackground();
+		await dispatch(info()); // start watching
+		gateway.setActivity.mockClear();
+
+		await dispatch({ type: "LOGOUT_DISCORD" });
+
+		expect(gateway.setActivity).toHaveBeenCalledWith(
+			expect.objectContaining({ type: "STOPPED" }),
+		);
+		expect(currentAnimeState.title).toBe(null);
+		expect(gateway.disconnect).toHaveBeenCalledTimes(1);
+	});
+});

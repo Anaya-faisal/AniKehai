@@ -159,6 +159,19 @@ export default defineBackground(() => {
 				}
 
 				if (message.type === "LOGOUT_DISCORD") {
+					if (currentAnimeState.title !== null) {
+						try {
+							await gateway.setActivity({
+								type: "STOPPED",
+								...currentAnimeState,
+							});
+						} catch (err) {
+							logger.error("[setActivity/logout]", err);
+						}
+					}
+					if (activityTimeout) clearTimeout(activityTimeout);
+					clearAnimeState();
+
 					gateway.disconnect();
 					isLoggingOut = true;
 					try {

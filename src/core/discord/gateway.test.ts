@@ -348,6 +348,23 @@ describe("setActivity", () => {
 		await expect(gateway.setActivity(watching())).resolves.toBeUndefined();
 	});
 
+	it("caches the activity sent before READY and broadcasts it automatically upon READY", async () => {
+		await gateway.connect();
+		const ws = FakeWebSocket.last;
+		ws.serverOpen();
+		ws.serverSend({ op: 10, d: { heartbeat_interval: 1000 } });
+
+		await gateway.setActivity(watching());
+		expect(ws.sentPayloads.filter((p) => p.op === 3)).toHaveLength(0);
+
+		ws.serverSend({ op: 0, t: "READY", d: {} });
+		await vi.advanceTimersByTimeAsync(0);
+
+		const presence = ws.sentPayloads.find((p) => p.op === 3);
+		expect(presence).toBeDefined();
+		expect(presence?.d.activities[0].details).toBe("Frieren");
+	});
+
 	const presence = async (
 		state: Parameters<DiscordGateway["setActivity"]>[0],
 	) => {

@@ -4,6 +4,16 @@ import type { PlaybackState } from "../../shared/types";
 import { getAppAssetId, getLargeImageKey } from "../discord/assets";
 import { refreshDiscordToken } from "./auth";
 
+type ActivityPayload = PlaybackState & {
+	title: string;
+	episode: string;
+	episodeName?: string;
+	coverUrl: string;
+	currentMs: number;
+	durationMs: number;
+	isPaused: boolean;
+};
+
 export class DiscordGateway {
 	private ws: WebSocket | null = null;
 	private token: string | null = null;
@@ -14,6 +24,7 @@ export class DiscordGateway {
 	private lastSentPresenceJson: string | null = null;
 	private presenceQueue: Promise<void> = Promise.resolve();
 	private seq: number | null = null;
+	private cachedActivity: ActivityPayload | null = null;
 
 	async connect() {
 		this.isManualDisconnect = false;
@@ -90,6 +101,10 @@ export class DiscordGateway {
 				this.isReady = true;
 				this.reconnectAttempts = 0;
 				logger.log("[Gateway] Ready and authenticated!");
+
+				if (this.cachedActivity) {
+					this.setActivity(this.cachedActivity);
+				}
 			}
 
 			if (op === 9) {
@@ -169,33 +184,14 @@ export class DiscordGateway {
 		);
 	}
 
-	public setActivity(
-		state: PlaybackState & {
-			title: string;
-			episode: string;
-			episodeName?: string;
-			coverUrl: string;
-			currentMs: number;
-			durationMs: number;
-			isPaused: boolean;
-		},
-	): Promise<void> {
+	public setActivity(state: ActivityPayload): Promise<void> {
+		this.cachedActivity = state;
 		const next = this.presenceQueue.then(() => this.processSetActivity(state));
 		this.presenceQueue = next.catch(() => {});
 		return next;
 	}
 
-	private async processSetActivity(
-		state: PlaybackState & {
-			title: string;
-			episode: string;
-			episodeName?: string;
-			coverUrl: string;
-			currentMs: number;
-			durationMs: number;
-			isPaused: boolean;
-		},
-	) {
+	private async processSetActivity(state: ActivityPayload) {
 		if (!this.isReady || !this.ws) return;
 
 		const isStopped = state.type === "STOPPED";
