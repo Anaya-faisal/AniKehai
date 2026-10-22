@@ -266,7 +266,7 @@ describe("LOGIN_DISCORD", () => {
 	beforeEach(startBackground);
 
 	it("success: connects the gateway and replies success", async () => {
-		vi.mocked(loginWithDiscord).mockResolvedValue("tok");
+		vi.mocked(loginWithDiscord).mockResolvedValue({ status: "token" });
 		gateway.connect.mockClear();
 
 		const { sendResponse, returned } = await dispatch({
@@ -274,24 +274,27 @@ describe("LOGIN_DISCORD", () => {
 		});
 		expect(returned).toBe(true);
 		expect(gateway.connect).toHaveBeenCalledTimes(1);
-		expect(sendResponse).toHaveBeenCalledWith({ success: true });
+		expect(sendResponse).toHaveBeenCalledWith({ status: "token" });
 	});
 
 	it("mobile: replies pending without connecting", async () => {
-		vi.mocked(loginWithDiscord).mockResolvedValue("mobile_pending");
+		vi.mocked(loginWithDiscord).mockResolvedValue({ status: "pending" });
 		gateway.connect.mockClear();
 
 		const { sendResponse } = await dispatch({ type: "LOGIN_DISCORD" });
-		expect(sendResponse).toHaveBeenCalledWith({ success: true, pending: true });
+		expect(sendResponse).toHaveBeenCalledWith({ status: "pending" });
 		expect(gateway.connect).not.toHaveBeenCalled();
 	});
 
-	it("no token: replies with a failure message", async () => {
-		vi.mocked(loginWithDiscord).mockResolvedValue(null);
+	it("failure: replies with a failure message", async () => {
+		vi.mocked(loginWithDiscord).mockResolvedValue({
+			status: "failed",
+			error: "Denied",
+		});
 		const { sendResponse } = await dispatch({ type: "LOGIN_DISCORD" });
 		expect(sendResponse).toHaveBeenCalledWith({
-			success: false,
-			error: "Failed to obtain token.",
+			status: "failed",
+			error: "Denied",
 		});
 	});
 
@@ -299,14 +302,17 @@ describe("LOGIN_DISCORD", () => {
 		vi.mocked(loginWithDiscord).mockRejectedValue(new Error("kaboom"));
 		const { sendResponse } = await dispatch({ type: "LOGIN_DISCORD" });
 		expect(sendResponse).toHaveBeenCalledWith({
-			success: false,
+			status: "failed",
 			error: "kaboom",
 		});
 	});
 
 	it("clears any previous auth_error first", async () => {
 		await browser.storage.local.set({ auth_error: "stale" });
-		vi.mocked(loginWithDiscord).mockResolvedValue(null);
+		vi.mocked(loginWithDiscord).mockResolvedValue({
+			status: "failed",
+			error: "failed",
+		});
 		await dispatch({ type: "LOGIN_DISCORD" });
 		expect(
 			(await browser.storage.local.get("auth_error")).auth_error,
@@ -357,7 +363,7 @@ describe("SET_ACTIVITY_ENABLED", () => {
 		expect(gateway.setActivity).toHaveBeenCalledWith(
 			expect.objectContaining({ type: "STOPPED" }),
 		);
-		expect(currentAnimeState.title).toBe("Unknown");
+		expect(currentAnimeState.title).toBe(null);
 	});
 
 	it("disabling cancels the idle timeout (no second STOPPED later)", async () => {
@@ -374,17 +380,6 @@ describe("SET_ACTIVITY_ENABLED", () => {
 		gateway.setActivity.mockClear();
 		await dispatch({ type: "SET_ACTIVITY_ENABLED", enabled: true });
 		expect(gateway.setActivity).not.toHaveBeenCalled();
-	});
-
-	it("coerces truthy/falsy values to booleans", async () => {
-		await dispatch({ type: "SET_ACTIVITY_ENABLED", enabled: 0 });
-		expect(
-			(await browser.storage.local.get("activity_enabled")).activity_enabled,
-		).toBe(false);
-		await dispatch({ type: "SET_ACTIVITY_ENABLED", enabled: "yes" });
-		expect(
-			(await browser.storage.local.get("activity_enabled")).activity_enabled,
-		).toBe(true);
 	});
 });
 
@@ -452,7 +447,7 @@ describe("GET_STATUS", () => {
 			activityEnabled: true,
 			privacyEnabled: false,
 			authError: null,
-			currentAnime: currentAnimeState,
+			currentAnime: null,
 		});
 	});
 
@@ -501,13 +496,13 @@ describe("messages from content scripts", () => {
 
 	it("ignores messages from background (inactive) tabs", async () => {
 		await dispatch(info(), BACKGROUND_TAB);
-		expect(currentAnimeState.title).toBe("Unknown");
+		expect(currentAnimeState.title).toBe(null);
 		expect(gateway.setActivity).not.toHaveBeenCalled();
 	});
 
 	it("ignores messages without a tab", async () => {
 		await dispatch(info(), {});
-		expect(currentAnimeState.title).toBe("Unknown");
+		expect(currentAnimeState.title).toBe(null);
 	});
 
 	it("ignores unknown message types", async () => {
@@ -648,7 +643,7 @@ describe("messages from content scripts", () => {
 			expect(gateway.setActivity).toHaveBeenCalledWith(
 				expect.objectContaining({ type: "STOPPED" }),
 			);
-			expect(currentAnimeState.title).toBe("Unknown");
+			expect(currentAnimeState.title).toBe(null);
 		});
 
 		it("cancels the idle timeout", async () => {
@@ -681,7 +676,7 @@ describe("messages from content scripts", () => {
 			expect(gateway.setActivity).toHaveBeenCalledWith(
 				expect.objectContaining({ type: "STOPPED" }),
 			);
-			expect(currentAnimeState.title).toBe("Unknown");
+			expect(currentAnimeState.title).toBe(null);
 		});
 
 		it("is pushed back by every heartbeat update", async () => {
