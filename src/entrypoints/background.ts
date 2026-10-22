@@ -80,12 +80,37 @@ export default defineBackground(() => {
 		}, RESET_ACTIVITY_TIMEOUT * 1000);
 	}
 
+	async function reinjectContentScripts() {
+		const { content_scripts: contentScripts = [] } =
+			browser.runtime.getManifest();
+
+		for (const cs of contentScripts) {
+			if (!cs.js?.length || !cs.matches?.length) continue;
+
+			const tabs = await browser.tabs.query({ url: cs.matches });
+			for (const tab of tabs) {
+				if (tab.id === undefined) continue;
+
+				browser.scripting
+					.executeScript({
+						target: { tabId: tab.id, allFrames: cs.all_frames ?? false },
+						files: cs.js as never,
+					})
+					.catch((err) => logger.warn("[reinject]", tab.url, err));
+			}
+		}
+	}
+
 	browser.runtime.onInstalled.addListener((details) => {
 		if (details.reason === "install") {
 			browser.tabs.create({
 				url: browser.runtime.getURL("/popup.html"),
 				active: true,
 			});
+		}
+
+		if (details.reason === "install" || details.reason === "update") {
+			reinjectContentScripts().catch((err) => logger.error("[reinject]", err));
 		}
 	});
 

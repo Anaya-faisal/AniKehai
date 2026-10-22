@@ -136,7 +136,7 @@ describe("onInstalled", () => {
 		);
 	});
 
-	it("does nothing on update", async () => {
+	it("does not open the popup on update", async () => {
 		await startBackground();
 		const create = vi.spyOn(browser.tabs, "create");
 		await fakeBrowser.runtime.onInstalled.trigger({
@@ -144,6 +144,100 @@ describe("onInstalled", () => {
 			previousVersion: "1.0.0",
 		});
 		expect(create).not.toHaveBeenCalled();
+	});
+});
+
+describe("content script re-injection after install/update", () => {
+	const MANIFEST = {
+		content_scripts: [
+			{
+				matches: ["https://hianime.at/*", "https://kwik.cx/*"],
+				js: ["content-scripts/content.js"],
+				all_frames: true,
+			},
+		],
+	};
+	let executeScript: ReturnType<typeof vi.fn>;
+
+	const define = (target: object, key: string, value: unknown) =>
+		Object.defineProperty(target, key, {
+			value,
+			configurable: true,
+			writable: true,
+		});
+
+	const trigger = async (details: { reason: string }) => {
+		await fakeBrowser.runtime.onInstalled.trigger(details as never);
+		await vi.advanceTimersByTimeAsync(0);
+	};
+
+	beforeEach(async () => {
+		define(browser.runtime, "getManifest", () => MANIFEST);
+		executeScript = vi.fn().mockResolvedValue([]);
+		define(browser, "scripting", { executeScript });
+		vi.spyOn(browser.tabs, "query").mockResolvedValue([
+			{ id: 7, url: "https://hianime.at/watch/a" },
+			{ id: 9, url: "https://kwik.cx/e/b" },
+			{ url: "https://hianime.at/no-id" },
+		] as never);
+		await startBackground();
+	});
+
+	it("injects the content script into matching open tabs on update", async () => {
+		await trigger({ reason: "update" });
+
+		expect(browser.tabs.query).toHaveBeenCalledWith({
+			url: MANIFEST.content_scripts[0]?.matches,
+		});
+		expect(executeScript).toHaveBeenCalledTimes(2);
+		expect(executeScript).toHaveBeenCalledWith({
+			target: { tabId: 7, allFrames: true },
+			files: ["content-scripts/content.js"],
+		});
+		expect(executeScript).toHaveBeenCalledWith({
+			target: { tabId: 9, allFrames: true },
+			files: ["content-scripts/content.js"],
+		});
+	});
+
+	it("also injects on first install", async () => {
+		await trigger({ reason: "install" });
+		expect(executeScript).toHaveBeenCalledTimes(2);
+	});
+
+	it("does nothing for other reasons (e.g. browser update)", async () => {
+		await trigger({ reason: "chrome_update" });
+		expect(browser.tabs.query).not.toHaveBeenCalled();
+		expect(executeScript).not.toHaveBeenCalled();
+	});
+
+	it("keeps going when injecting into one tab fails", async () => {
+		executeScript.mockRejectedValueOnce(new Error("Cannot access contents"));
+		vi.spyOn(console, "warn").mockImplementation(() => {});
+
+		await trigger({ reason: "update" });
+
+		expect(executeScript).toHaveBeenCalledTimes(2);
+	});
+
+	it("skips content scripts that have no files or no match patterns", async () => {
+		define(browser.runtime, "getManifest", () => ({
+			content_scripts: [
+				{ matches: ["https://hianime.at/*"] },
+				{ js: ["a.js"] },
+			],
+		}));
+
+		await trigger({ reason: "update" });
+
+		expect(browser.tabs.query).not.toHaveBeenCalled();
+		expect(executeScript).not.toHaveBeenCalled();
+	});
+
+	it("handles a manifest with no content_scripts", async () => {
+		define(browser.runtime, "getManifest", () => ({}));
+		await trigger({ reason: "update" });
+		expect(executeScript).not.toHaveBeenCalled();
 	});
 });
 
