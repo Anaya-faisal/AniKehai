@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { fakeBrowser } from "wxt/testing/fake-browser";
+import { version } from "../../package.json";
 import { AppShell } from "../../src/entrypoints/popup/components/AppShell";
 import { AuthGateModal } from "../../src/entrypoints/popup/components/AuthGateModal";
 import { InkDivider } from "../../src/entrypoints/popup/components/decor/InkDivider";
@@ -10,11 +12,14 @@ import { NowPlayingCard } from "../../src/entrypoints/popup/components/NowPlayin
 import { SettingsView } from "../../src/entrypoints/popup/components/SettingsView";
 import { StatusBadge } from "../../src/entrypoints/popup/components/StatusBadge";
 import { ToggleSwitch } from "../../src/entrypoints/popup/components/ToggleSwitch";
-import {
-	DISCORD_SERVER_URL,
-	EXTENSION_VERSION,
-} from "../../src/shared/constants";
+import { DISCORD_SERVER_URL } from "../../src/shared/constants";
 import { ANIME, makeStatus } from "../helpers/status";
+
+beforeEach(() => {
+	vi.spyOn(fakeBrowser.runtime, "getManifest").mockReturnValue({
+		version,
+	} as never);
+});
 
 describe("ToggleSwitch", () => {
 	it("exposes an accessible switch reflecting `checked`", () => {
@@ -319,10 +324,6 @@ describe("AppShell", () => {
 
 	it("shows the extension version in the footer", () => {
 		render(<AppShell status={makeStatus()} />);
-		expect(
-			screen.getByText(
-				new RegExp(`v${EXTENSION_VERSION.replace(/\./g, "\\.")}`),
-			),
-		).toBeInTheDocument();
+		expect(screen.getByText(`AniKehai · v${version}`)).toBeInTheDocument();
 	});
 });
