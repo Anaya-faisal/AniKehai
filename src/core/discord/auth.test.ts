@@ -47,11 +47,11 @@ afterEach(removeIdentity);
 describe("loginWithDiscord (desktop: identity API available)", () => {
 	beforeEach(installIdentity);
 
-	it("runs the OAuth2 PKCE flow and stores + returns the access token", async () => {
+	it("runs the OAuth2 PKCE flow and stores + returns the access token status", async () => {
 		launchWebAuthFlow.mockResolvedValue(`${REDIRECT}?code=AUTH_CODE`);
 		fetchMock.mockResolvedValue(tokenResponse({ access_token: "tok_abc" }));
 
-		await expect(loginWithDiscord()).resolves.toBe("tok_abc");
+		await expect(loginWithDiscord()).resolves.toEqual({ status: "token" });
 		expect(
 			(await browser.storage.local.get("discord_token")).discord_token,
 		).toBe("tok_abc");
@@ -125,43 +125,53 @@ describe("loginWithDiscord (desktop: identity API available)", () => {
 	it.each([
 		["no redirect URL comes back", undefined],
 		["the redirect has no code", `${REDIRECT}?error=access_denied`],
-	])("returns null when %s", async (_label, responseUrl) => {
+	])("returns failure when %s", async (_label, responseUrl) => {
 		launchWebAuthFlow.mockResolvedValue(responseUrl);
-		await expect(loginWithDiscord()).resolves.toBeNull();
+		await expect(loginWithDiscord()).resolves.toMatchObject({
+			status: "failed",
+		});
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
-	it("returns null (and stores nothing) when Discord doesn't return an access_token", async () => {
+	it("returns failure (and stores nothing) when Discord doesn't return an access_token", async () => {
 		launchWebAuthFlow.mockResolvedValue(`${REDIRECT}?code=c`);
 		fetchMock.mockResolvedValue(tokenResponse({ error: "invalid_grant" }));
 
-		await expect(loginWithDiscord()).resolves.toBeNull();
+		await expect(loginWithDiscord()).resolves.toMatchObject({
+			status: "failed",
+		});
 		expect(
 			(await browser.storage.local.get("discord_token")).discord_token,
 		).toBeUndefined();
 	});
 
-	it("returns null when the user closes the auth window", async () => {
+	it("returns failure when the user closes the auth window", async () => {
 		launchWebAuthFlow.mockRejectedValue(
 			new Error("The user did not approve access."),
 		);
-		await expect(loginWithDiscord()).resolves.toBeNull();
+		await expect(loginWithDiscord()).resolves.toMatchObject({
+			status: "failed",
+			error: "The user did not approve access.",
+		});
 	});
 
-	it("returns null when the token request fails at the network level", async () => {
+	it("returns failure when the token request fails at the network level", async () => {
 		launchWebAuthFlow.mockResolvedValue(`${REDIRECT}?code=c`);
 		fetchMock.mockRejectedValue(new Error("offline"));
-		await expect(loginWithDiscord()).resolves.toBeNull();
+		await expect(loginWithDiscord()).resolves.toMatchObject({
+			status: "failed",
+			error: "offline",
+		});
 	});
 });
 
 describe("loginWithDiscord (mobile: no identity API)", () => {
 	beforeEach(removeIdentity);
 
-	it("opens the authorize page in a tab and reports mobile_pending", async () => {
+	it("opens the authorize page in a tab and reports pending", async () => {
 		const create = vi.spyOn(browser.tabs, "create");
 
-		await expect(loginWithDiscord()).resolves.toBe("mobile_pending");
+		await expect(loginWithDiscord()).resolves.toEqual({ status: "pending" });
 
 		const { url } = (create.mock.calls[0]?.[0] ?? {}) as { url: string };
 		const auth = new URL(url);
