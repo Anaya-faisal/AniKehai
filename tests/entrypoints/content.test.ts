@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ContentScriptContext } from "wxt/utils/content-script-context";
 import content from "../../src/entrypoints/content";
 import { extractMatches } from "../../src/scraper/extractor";
 import { strategies } from "../../src/scraper/sites";
@@ -9,16 +10,26 @@ const TICK = CHECK_ACTIVITY_INTERVAL * 1000;
 
 let sendMessage: ReturnType<typeof vi.fn>;
 
-/** Pretend the content script was injected into `url`, then run main(). */
+function setRuntimeId(id: string | undefined) {
+	Object.defineProperty(browser.runtime, "id", {
+		value: id,
+		configurable: true,
+		writable: true,
+	});
+}
+
 function injectInto(url: string) {
 	(
 		window as unknown as { happyDOM: { setURL(u: string): void } }
 	).happyDOM.setURL(url);
-	content.main(undefined as never);
+	const ctx = new ContentScriptContext("content");
+	content.main(ctx);
+	return ctx;
 }
 
 beforeEach(() => {
 	vi.useFakeTimers();
+	setRuntimeId("test-extension-id");
 	sendMessage = vi.fn().mockResolvedValue(undefined);
 	vi.spyOn(browser.runtime, "sendMessage").mockImplementation(
 		sendMessage as never,
@@ -174,5 +185,47 @@ describe("inside a player iframe (progress strategy)", () => {
 		for (const [msg] of sendMessage.mock.calls) {
 			expect(msg.type).toBe("TIME_UPDATE");
 		}
+	});
+});
+
+describe("extension reload / update (context invalidation)", () => {
+	it("stops polling once the extension context is invalidated", () => {
+		const error = vi.spyOn(console, "error").mockImplementation(() => {});
+		setBody(loadFixture("hianime/watch.html.fixture"));
+		injectInto("https://hianime.at/watch/bocchi");
+
+		vi.advanceTimersByTime(TICK);
+		expect(sendMessage).toHaveBeenCalledTimes(1);
+
+		setRuntimeId(undefined);
+		vi.advanceTimersByTime(TICK * 5);
+
+		expect(sendMessage).toHaveBeenCalledTimes(1);
+		expect(error).not.toHaveBeenCalled();
+	});
+
+	it("stops polling when the context is invalidated explicitly", () => {
+		setBody(loadFixture("hianime/watch.html.fixture"));
+		const ctx = injectInto("https://hianime.at/watch/bocchi");
+
+		ctx.notifyInvalidated();
+		vi.advanceTimersByTime(TICK * 3);
+
+		expect(sendMessage).not.toHaveBeenCalled();
+	});
+
+	it("survives a rejected sendMessage (background restarting) and retries", async () => {
+		setBody(loadFixture("hianime/watch.html.fixture"));
+		sendMessage.mockRejectedValue(
+			new Error(
+				"Could not establish connection. Receiving end does not exist.",
+			),
+		);
+		injectInto("https://hianime.at/watch/bocchi");
+
+		await vi.advanceTimersByTimeAsync(TICK);
+		await vi.advanceTimersByTimeAsync(TICK);
+
+		expect(sendMessage).toHaveBeenCalledTimes(2);
 	});
 });

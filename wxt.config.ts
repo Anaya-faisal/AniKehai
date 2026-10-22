@@ -15,6 +15,7 @@ export default defineConfig({
 		permissions: [
 			"storage",
 			"tabs",
+			"scripting",
 			...(browser === "chrome" ? ["identity"] : []),
 		],
 		host_permissions: [

@@ -41,14 +41,16 @@ describe("wxt.config manifest", () => {
 	it("chrome: requests identity permission and pins the extension key", () => {
 		const m = build("chrome");
 		expect(m.permissions).toEqual(
-			expect.arrayContaining(["storage", "tabs", "identity"]),
+			expect.arrayContaining(["storage", "tabs", "scripting", "identity"]),
 		);
 		expect(m.key).toBeTypeOf("string");
 	});
 
 	it("firefox: no identity permission and no key (OAuth uses the mobile/tab flow)", () => {
 		const m = build("firefox");
-		expect(m.permissions).toEqual(expect.arrayContaining(["storage", "tabs"]));
+		expect(m.permissions).toEqual(
+			expect.arrayContaining(["storage", "tabs", "scripting"]),
+		);
 		expect(m.permissions).not.toContain("identity");
 		expect(m.key).toBeUndefined();
 	});
