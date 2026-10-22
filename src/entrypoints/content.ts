@@ -10,7 +10,7 @@ export default defineContentScript({
 	matches: [...extractMatches(strategies)],
 	allFrames: true,
 
-	main() {
+	main(ctx) {
 		const host = window.location.hostname;
 
 		const metaStrategy = strategies.find((stg) =>
@@ -35,12 +35,18 @@ export default defineContentScript({
 			}
 		}
 
-		setInterval(() => {
+		const send = (message: object) => {
+			browser.runtime.sendMessage(message).catch((err) => {
+				logger.warn("sendMessage failed:", err);
+			});
+		};
+
+		ctx.setInterval(() => {
 			try {
 				if (iframeStrategy) {
 					const stats = iframeStrategy.getProgressStats();
 
-					browser.runtime.sendMessage({
+					send({
 						type: "TIME_UPDATE",
 						currentMs: stats.currentMs,
 						durationMs: stats.durationMs,
@@ -54,11 +60,11 @@ export default defineContentScript({
 					const meta = metaStrategy.getAnimeMetadata();
 
 					if (!meta.title || !meta.episode) {
-						browser.runtime.sendMessage({ type: "STOPPED" });
+						send({ type: "STOPPED" });
 						return;
 					}
 
-					browser.runtime.sendMessage({
+					send({
 						type: "INFO_UPDATE",
 						title: meta.title,
 						episode: meta.episode,
