@@ -19,7 +19,7 @@ export function Header({ state, view, onToggleSettings }: HeaderProps) {
 			</div>
 
 			<div className="flex items-center gap-2">
-				{state === "connecting" && <StatusBadge state={state} />}
+				{state === "connecting" && <StatusBadge />}
 				<motion.button
 					type="button"
 					aria-label={

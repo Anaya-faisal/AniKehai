@@ -63,13 +63,9 @@ describe("ToggleSwitch", () => {
 });
 
 describe("StatusBadge", () => {
-	it.each([
-		["live", "On air"],
-		["connecting", "Tuning in"],
-		["offline", "Off air"],
-	] as const)("%s shows '%s'", (state, label) => {
-		render(<StatusBadge state={state} />);
-		expect(screen.getByText(label)).toBeInTheDocument();
+	it("connecting shows 'Connecting'", () => {
+		render(<StatusBadge />);
+		expect(screen.getByText("Connecting")).toBeInTheDocument();
 	});
 });
 
@@ -157,7 +153,7 @@ describe("Header", () => {
 		const { rerender } = render(
 			<Header state="connecting" view="home" onToggleSettings={() => {}} />,
 		);
-		expect(screen.getByText("Tuning in")).toBeInTheDocument();
+		expect(screen.getByText("Connecting")).toBeInTheDocument();
 
 		rerender(<Header state="live" view="home" onToggleSettings={() => {}} />);
 		expect(screen.queryByText("On air")).not.toBeInTheDocument();
@@ -313,12 +309,12 @@ describe("AppShell", () => {
 
 	it("shows the 'connecting' badge while authenticated but the gateway isn't ready", () => {
 		render(<AppShell status={makeStatus({ isGatewayReady: false })} />);
-		expect(screen.getByText("Tuning in")).toBeInTheDocument();
+		expect(screen.getByText("Connecting")).toBeInTheDocument();
 	});
 
 	it("shows no badge when live", () => {
 		render(<AppShell status={makeStatus({ isGatewayReady: true })} />);
-		expect(screen.queryByText("Tuning in")).not.toBeInTheDocument();
+		expect(screen.queryByText("Connecting")).not.toBeInTheDocument();
 	});
 
 	it("shows the extension version in the footer", () => {
