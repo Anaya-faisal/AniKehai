@@ -45,7 +45,12 @@ export class FakeWebSocket {
 		this.onopen?.();
 	}
 
-	serverSend(payload: { op: number; t?: string; d?: unknown }): void {
+	serverSend(payload: {
+		op: number;
+		t?: string;
+		d?: unknown;
+		s?: number | null;
+	}): void {
 		this.onmessage?.({ data: JSON.stringify(payload) });
 	}
 
