@@ -14,7 +14,10 @@ import {
 	setActivityEnabledFlag,
 	setPrivacyEnabledFlag,
 } from "../core/state/playback";
-import { RESET_ACTIVITY_TIMEOUT } from "../shared/constants";
+import {
+	MOBILE_REDIRECT_URI,
+	RESET_ACTIVITY_TIMEOUT,
+} from "../shared/constants";
 import { logger } from "../shared/logger";
 
 export default defineBackground(() => {
@@ -87,7 +90,7 @@ export default defineBackground(() => {
 
 	browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 		const targetUrl = changeInfo.url || tab.url;
-		if (targetUrl?.startsWith("http://127.0.0.1/discord-auth")) {
+		if (targetUrl?.startsWith(MOBILE_REDIRECT_URI)) {
 			browser.tabs.remove(tabId).catch(() => {});
 
 			processLocalhostRedirect(targetUrl).then(async (result) => {
