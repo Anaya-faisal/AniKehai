@@ -86,6 +86,7 @@ jobs:
         browser:
           - chrome
           - firefox
+          - edge
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4

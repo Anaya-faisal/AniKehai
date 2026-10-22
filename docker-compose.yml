@@ -43,6 +43,10 @@ services:
     <<: *dev
     command: ["bunx", "wxt", "-c", "wxt.docker.config.ts", "-b", "firefox"]
 
+  dev-edge:
+    <<: *dev
+    command: ["bunx", "wxt", "-c", "wxt.docker.config.ts", "-b", "edge"]
+
   shell:
     <<: *dev
     ports: []
@@ -76,7 +80,7 @@ services:
     environment: *env
     volumes:
       - ./.output:/app/.output
-    command: ["sh", "-c", "bun run zip:chrome && bun run zip:firefox"]
+    command: ["sh", "-c", "bun run zip:chrome && bun run zip:firefox && bun run zip:edge"]
 
   e2e:
     <<: *browser

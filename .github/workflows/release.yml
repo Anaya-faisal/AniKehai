@@ -33,6 +33,7 @@ jobs:
         run: |
           bun run zip:chrome
           bun run zip:firefox
+          bun run zip:edge
       - name: Prepare Artifacts
         run: |
           mkdir -p artifacts
