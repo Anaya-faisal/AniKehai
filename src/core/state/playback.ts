@@ -1,12 +1,16 @@
-export const currentAnimeState = {
-	title: "Unknown",
-	episode: "Unknown",
-	episodeName: "",
-	coverUrl: "",
-	currentMs: 0,
-	durationMs: 0,
-	isPaused: false,
-};
+function defaultState() {
+	return {
+		title: "Unknown",
+		episode: "Unknown",
+		episodeName: "",
+		coverUrl: "",
+		currentMs: 0,
+		durationMs: 0,
+		isPaused: false,
+	};
+}
+
+export const currentAnimeState = defaultState();
 
 let lastBroadcast = {
 	title: "",
@@ -30,13 +34,7 @@ export function setPrivacyEnabledFlag(enabled: boolean) {
 }
 
 export function clearAnimeState() {
-	currentAnimeState.title = "Unknown";
-	currentAnimeState.episode = "Unknown";
-	currentAnimeState.episodeName = "";
-	currentAnimeState.coverUrl = "";
-	currentAnimeState.currentMs = 0;
-	currentAnimeState.durationMs = 0;
-	currentAnimeState.isPaused = false;
+	Object.assign(currentAnimeState, defaultState());
 
 	lastBroadcast = {
 		title: "",
