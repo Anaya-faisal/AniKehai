@@ -14,6 +14,28 @@ export interface ActiveState {
 
 export type PlaybackState = StoppedState | ActiveState;
 
+export type RuntimeMessage =
+	| { type: "GET_STATUS" }
+	| { type: "LOGIN_DISCORD" }
+	| { type: "LOGOUT_DISCORD" }
+	| { type: "SET_ACTIVITY_ENABLED"; enabled: boolean }
+	| { type: "SET_PRIVACY_ENABLED"; enabled: boolean }
+	| { type: "STOPPED" }
+	| { type: "FETCH_ANILIST"; anilistId: number }
+	| {
+			type: "INFO_UPDATE";
+			title: string;
+			episode: string;
+			episodeName?: string | null;
+			coverUrl: string | null;
+	  }
+	| {
+			type: "TIME_UPDATE";
+			currentMs: number;
+			durationMs: number;
+			isPaused: boolean;
+	  };
+
 export interface AnimeMetadata {
 	title: string | null | undefined;
 	episode: string | null | undefined;
@@ -41,6 +63,8 @@ export interface AnimeState {
 	episodeName?: string;
 	coverUrl: string;
 	isPaused: boolean;
+	currentMs: number;
+	durationMs: number;
 }
 
 export type ViewName = "home" | "settings";
@@ -55,7 +79,7 @@ export interface StatusResponse {
 }
 
 export interface LoginResponse {
-	success: boolean;
+	status: "token" | "pending" | "failed";
 	error?: string;
 }
 
