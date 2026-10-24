@@ -31,7 +31,7 @@ const watching = (patch: Record<string, unknown> = {}) => ({
 	title: "Frieren",
 	episode: "Episode 3",
 	episodeName: "Killing Magic",
-	coverUrl: "https://cdn/cover.jpg",
+	coverUrl: "https://img.anili.st/cover.jpg",
 	currentMs: 60_000,
 	durationMs: 1_440_000,
 	isPaused: false,
@@ -439,6 +439,34 @@ describe("setActivity", () => {
 		expect(d.activities[0].state).toBe("Episode 3");
 	});
 
+	it("strips control characters from the title and episode", async () => {
+		const bell = String.fromCharCode(7);
+		const d = await presence(
+			watching({
+				title: `  Frieren${bell}  `,
+				episode: `Episode${bell} 3`,
+				episodeName: `Killing${bell} Magic`,
+			}),
+		);
+
+		expect(d.activities[0].details).toBe("Frieren");
+		expect(d.activities[0].state).toBe("Episode 3: Killing Magic");
+		expect(d.activities[0].assets.large_text).toBe("Frieren");
+	});
+
+	it("truncates an overlong title and episode", async () => {
+		const d = await presence(
+			watching({
+				title: "A".repeat(500),
+				episode: "B".repeat(500),
+				episodeName: "C".repeat(500),
+			}),
+		);
+
+		expect(d.activities[0].details).toHaveLength(128);
+		expect(d.activities[0].state).toHaveLength(128);
+	});
+
 	it("sets start/end timestamps from position and duration while playing", async () => {
 		const d = await presence(
 			watching({ currentMs: 60_000, durationMs: 1_440_000 }),
@@ -466,11 +494,40 @@ describe("setActivity", () => {
 
 	it("registers the cover via getLargeImageKey when a coverUrl exists", async () => {
 		await presence(watching());
-		expect(getLargeImageKey).toHaveBeenCalledWith("https://cdn/cover.jpg");
+		expect(getLargeImageKey).toHaveBeenCalledWith(
+			"https://img.anili.st/cover.jpg",
+		);
 	});
 
 	it("uses the default_cover asset when there is no coverUrl", async () => {
 		const d = await presence(watching({ coverUrl: "" }));
+		expect(getLargeImageKey).not.toHaveBeenCalled();
+		expect(d.activities[0].assets.large_image).toBe("asset:default_cover");
+	});
+
+	it("never registers a cover URL from an untrusted host", async () => {
+		const d = await presence(
+			watching({ coverUrl: "https://evil.example/c.jpg" }),
+		);
+
+		expect(getLargeImageKey).not.toHaveBeenCalled();
+		expect(d.activities[0].assets.large_image).toBe("asset:default_cover");
+	});
+
+	it("never registers a non-HTTPS cover URL", async () => {
+		const d = await presence(
+			watching({ coverUrl: "http://img.anili.st/cover.jpg" }),
+		);
+
+		expect(getLargeImageKey).not.toHaveBeenCalled();
+		expect(d.activities[0].assets.large_image).toBe("asset:default_cover");
+	});
+
+	it("never registers a cover URL that only looks like a trusted host", async () => {
+		const d = await presence(
+			watching({ coverUrl: "https://evil-anili.st/cover.jpg" }),
+		);
+
 		expect(getLargeImageKey).not.toHaveBeenCalled();
 		expect(d.activities[0].assets.large_image).toBe("asset:default_cover");
 	});

@@ -1,5 +1,13 @@
 import { APPLICATION_ID } from "../../shared/constants";
 import { logger } from "../../shared/logger";
+import {
+	MAX_EPISODE_LENGTH,
+	MAX_EPISODE_NAME_LENGTH,
+	MAX_STATE_LENGTH,
+	MAX_TITLE_LENGTH,
+	sanitizeCoverUrl,
+	sanitizeString,
+} from "../../shared/sanitize";
 import type { PlaybackState } from "../../shared/types";
 import { getAppAssetId, getLargeImageKey } from "../discord/assets";
 import { refreshDiscordToken } from "./auth";
@@ -193,12 +201,20 @@ export class DiscordGateway {
 
 		const isStopped = state.type === "STOPPED";
 
+		const title = sanitizeString(state.title, MAX_TITLE_LENGTH);
+		const episode = sanitizeString(state.episode, MAX_EPISODE_LENGTH);
+		const episodeName = sanitizeString(
+			state.episodeName,
+			MAX_EPISODE_NAME_LENGTH,
+		);
+		const coverUrl = sanitizeCoverUrl(state.coverUrl);
+
 		let largeImage: string | undefined;
 		let smallImage: string | undefined;
 
 		if (!isStopped) {
-			largeImage = state.coverUrl
-				? await getLargeImageKey(state.coverUrl)
+			largeImage = coverUrl
+				? await getLargeImageKey(coverUrl)
 				: await getAppAssetId("default_cover");
 
 			smallImage = await getAppAssetId(state.isPaused ? "pause" : "play");
@@ -218,8 +234,9 @@ export class DiscordGateway {
 			timestamps = { start, end };
 		}
 
-		const presenceState =
-			state.episode + (state.episodeName ? `: ${state.episodeName}` : "");
+		const presenceState = (
+			episode + (episodeName ? `: ${episodeName}` : "")
+		).slice(0, MAX_STATE_LENGTH);
 
 		const payload = {
 			op: 3,
@@ -232,12 +249,12 @@ export class DiscordGateway {
 								name: "Anime",
 								type: 3,
 								application_id: APPLICATION_ID,
-								details: state.title,
+								details: title,
 								state: presenceState,
 								timestamps,
 								assets: {
 									large_image: largeImage,
-									large_text: state.title,
+									large_text: title,
 									small_image: smallImage,
 									small_text: state.isPaused ? "paused" : "playing",
 								},
