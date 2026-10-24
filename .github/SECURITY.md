@@ -29,7 +29,7 @@ To help security researchers understand our boundaries, below is our expected th
 AniKehai operates as a browser extension that interacts with potentially untrusted third-party streaming sites (`*.anikototv.to`, `*.animepahe.pw`, etc.) while holding a sensitive Discord OAuth2 access token in local storage.
 
 ### In-Scope for Bug Bounties / Security Reports
-* **Token Theft:** Any vector that allows a malicious host web page or content script to extract the user's `discord_token` or `mobile_oauth_verifier` from `browser.storage.local`.
+* **Token Theft:** Any vector that allows a malicious host web page or content script to extract the user's `discord_token`, `discord_refresh_token` or `mobile_oauth_verifier` from `browser.storage.local`.
 * **Privilege Escalation:** Exploiting the `browser.runtime.sendMessage` pipeline to execute arbitrary code or unauthorized background script actions from a content script context.
 * **Cross-Site Scripting (XSS):** Vulnerabilities arising from improperly sanitized DOM scraping (e.g., parsing the `title` or `episode` fields) that result in script execution within the extension's popup or background contexts.
 * **Presence Spoofing:** Arbitrary web pages successfully injecting fake RPC statuses by bypassing the domain matching strategies.
@@ -42,4 +42,4 @@ The following scenarios are considered out of scope and do not pose a vulnerabil
 * **Rate Limiting / DoS:** Getting the extension rate-limited by the Discord Gateway or the AniList GraphQL API.
 
 ## Dependency Security
-We utilize automated scanning via Dependabot to monitor for known vulnerabilities in our upstream packages (e.g., `wxt`, `react`, `lucide-react`). Critical dependency updates are triaged and released immediately.
+CI runs `bun audit` and a Gitleaks secret scan on every push and pull request to `main`, and weekly. Critical dependency updates are triaged and released immediately.
