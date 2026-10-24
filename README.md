@@ -14,8 +14,8 @@ A lightweight, standalone browser extension that shows the anime you are watchin
 ![Version](https://img.shields.io/badge/version-v2.6.1-blue?style=flat&labelColor=#808080)
 
 <!-- DOWNLOADS:START -->
-![GitHub Downloads](https://img.shields.io/badge/github_downloads-198-blue?style=flat&labelColor=555555)
-![Firefox Weekly Downloads](https://img.shields.io/badge/firefox_weekly_downloads-0-blue?style=flat&labelColor=555555)
+![GitHub Downloads](https://img.shields.io/badge/github_downloads-200-blue?style=flat&labelColor=555555)
+![Firefox Weekly Downloads](https://img.shields.io/badge/firefox_weekly_downloads-1-blue?style=flat&labelColor=555555)
 ![Firefox Active Users](https://img.shields.io/badge/firefox_active_users-25-blue?style=flat&labelColor=555555)
 <!-- DOWNLOADS:END -->
 
