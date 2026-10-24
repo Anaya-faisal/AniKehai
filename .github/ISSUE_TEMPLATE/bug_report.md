@@ -30,7 +30,7 @@ How to turn logs on: open the extension's background service worker console and 
 **Environment**
  - OS: [e.g. Windows 11, macOS, Linux, Android]
  - Browser: [e.g. Chrome, Firefox, Edge, Kiwi]
- - Extension version: [e.g. v2.6.1] (shown at the bottom of the popup)
+ - Extension version: [shown at the bottom of the popup]
  - Logged in with Discord: [Yes/No]
  - Privacy mode on: [Yes/No]
  - "Broadcast to Discord" on: [Yes/No]
