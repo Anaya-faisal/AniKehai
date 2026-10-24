@@ -2,6 +2,13 @@ import { extractMatches } from "../scraper/extractor";
 import { strategies } from "../scraper/sites";
 import { CHECK_ACTIVITY_INTERVAL } from "../shared/constants";
 import { logger } from "../shared/logger";
+import {
+	MAX_EPISODE_LENGTH,
+	MAX_EPISODE_NAME_LENGTH,
+	MAX_TITLE_LENGTH,
+	sanitizeCoverUrl,
+	sanitizeString,
+} from "../shared/sanitize";
 
 const isMatch = (host: string, d: string) =>
 	host === d || host.endsWith(`.${d}`);
@@ -59,17 +66,25 @@ export default defineContentScript({
 				if (metaStrategy) {
 					const meta = metaStrategy.getAnimeMetadata();
 
-					if (!meta.title || !meta.episode) {
+					const title = sanitizeString(meta.title, MAX_TITLE_LENGTH);
+					const episode = sanitizeString(meta.episode, MAX_EPISODE_LENGTH);
+					const episodeName = sanitizeString(
+						meta.episodeName,
+						MAX_EPISODE_NAME_LENGTH,
+					);
+					const coverUrl = sanitizeCoverUrl(meta.coverUrl);
+
+					if (!title || !episode) {
 						send({ type: "STOPPED" });
 						return;
 					}
 
 					send({
 						type: "INFO_UPDATE",
-						title: meta.title,
-						episode: meta.episode,
-						episodeName: meta.episodeName,
-						coverUrl: meta.coverUrl,
+						title,
+						episode,
+						episodeName: episodeName || null,
+						coverUrl,
 					});
 				}
 			} catch (err) {
