@@ -1,45 +1,30 @@
-# Adding a New Streaming Site
+# Adding a Streaming Site
 
-The most common contribution. Each site is a **strategy**: a small file that knows where the title, episode, cover and video are on that site. You will touch about six files. Follow the steps in order.
+The most common contribution. Each site is a **strategy**: a small file that knows where the title, episode, cover and video are on that site. You touch about six files.
 
-## Before you start
+Before you start: check `src/scraper/sites/` and open issues so it is not already supported, [set up](./development.md), and open an episode page with DevTools (F12).
 
-1. Check open issues and `src/scraper/sites/` so the site is not already supported.
-2. Set up your environment ([Docker](./setup-docker.md) or [manual](./setup-manual.md)).
-3. Open an episode page on the site and open your browser DevTools (F12). You will inspect the HTML.
+## 1. Find the domains
 
-## Step 1: Find the domains
+- **`domains`**: the site's own hostnames, including mirrors. Bare hostnames only: `example.com`, not `https://example.com/watch`. A subdomain also matches.
+- **`iframe_src`**: the video player's hostname. In DevTools, find the `<iframe>` that contains the `<video>` and note its `src` host. Use `[]` if the video is on the main page.
 
-You need two lists:
+The registry test (`tests/scraper/sites/index.test.ts`) enforces: bare hostnames, no duplicates inside a strategy, no domain shared by two strategies, and no site domain that is also a player domain.
 
-- **`domains`**: the site's own addresses (including mirrors), as bare hostnames: `example.com`, not `https://example.com/watch`.
-- **`iframe_src`**: domains of the video player. In DevTools, find the `<iframe>` that contains the `<video>` and note its `src` host. Use an empty array `[]` if the video is on the main page itself.
-
-Rules (a test enforces them):
-
-- Bare hostnames only: no `https://`, paths, ports or `*`.
-- No duplicates inside one strategy.
-- A domain must not be contained in another strategy's domain, because `content.ts` matches with `host.includes(domain)`.
-- A site domain must not also be a player domain.
-
-## Step 2: Find the selectors
-
-On an episode page, find CSS selectors for:
+## 2. Find the selectors
 
 | Data | Needed? | Tip |
 | ---- | ------- | --- |
-| Anime title | Yes | Prefer stable classes/ids. Avoid long fragile chains. |
-| Episode label (e.g. "Episode 3") | Yes | |
-| Episode name (e.g. "Killing Magic") | Optional | Skip it if the site only repeats "Episode 3". |
-| Cover image URL | Optional | Return `null` when there is none. |
+| Anime title | Yes | Prefer stable classes or ids. |
+| Episode label ("Episode 3") | Yes | |
+| Episode name ("Killing Magic") | No | Skip it when it only repeats the label. |
+| Cover image URL | No | Return `null` if there is none. |
 
-In the DevTools console, test a selector: `document.querySelector("h1.title")?.textContent`.
+Test in the DevTools console: `document.querySelector("h1.title")?.textContent`. Some sites keep the data in the page `<title>` or the URL instead: see `kaa.ts`, `reanime.ts` and `miruro.ts`.
 
-Some sites put data in the page `<title>` or the URL instead. See `kaa.ts`, `reanime.ts` and `miruro.ts` for examples.
+## 3. Create the strategy
 
-## Step 3: Create the strategy file
-
-Create `src/scraper/sites/mysite.ts`:
+`src/scraper/sites/mysite.ts`:
 
 ```ts
 import type { AnimeSite } from "../../shared/types";
@@ -50,25 +35,19 @@ export const mysiteStrategy: AnimeSite = {
 	iframe_src: ["player.example"],
 
 	getAnimeMetadata: () => {
-		const titleElement = document.querySelector("h1.title");
-		const episodeElement = document.querySelector(".episode-label");
-		const episodeNameElement = document.querySelector(".ep-list .active .name");
-		const imageElement = document.querySelector(
-			".poster img",
-		) as HTMLImageElement | null;
-
-		const title = titleElement?.textContent?.trim();
-		const episode = episodeElement?.textContent?.trim();
-		const episodeName = episodeNameElement?.textContent?.trim();
-		const coverUrl = imageElement?.src;
+		const title = document.querySelector("h1.title")?.textContent?.trim();
+		const episode = document.querySelector(".episode-label")?.textContent?.trim();
+		const episodeName = document
+			.querySelector(".ep-list .active .name")
+			?.textContent?.trim();
+		const cover = document.querySelector<HTMLImageElement>(".poster img")?.src;
 
 		return {
-			title: titleElement ? title : null,
-			episode: episodeElement ? episode : null,
+			title: title ?? null,
+			episode: episode ?? null,
 			// skip names that just repeat the episode label
-			episodeName:
-				episodeNameElement && episode !== episodeName ? episodeName : null,
-			coverUrl: coverUrl ? coverUrl : null,
+			episodeName: episodeName && episodeName !== episode ? episodeName : null,
+			coverUrl: cover ?? null,
 		};
 	},
 
@@ -76,50 +55,27 @@ export const mysiteStrategy: AnimeSite = {
 };
 ```
 
-Important behaviors:
+Rules:
+- Off a watch page, return `null` for title and episode. The content script then sends `STOPPED`. If your selectors also match the home page, check `window.location.pathname` first (see `miruro.ts`).
+- Never throw for a missing element. Use `?.` and return `null`.
+- `getStandardVideoStats()` handles a normal `<video>` and JW Player. Only write your own `getProgressStats` for an unusual player (see `animex.ts`).
+- Protected covers (Cloudflare): read the AniList id and ask the background with `FETCH_ANILIST`, as `animepahe.ts` does. If `og:image` already points to a public CDN, just use it (see `reanime.ts`).
 
-- On a page that is **not** an episode page, return `null` for title and episode. The content script then sends `STOPPED` and clears the status.
-- Never throw because an element is missing. Use `?.` and return `null`.
-- `getStandardVideoStats()` handles a normal `<video>` and JW Player. Only write your own `getProgressStats` if the player is unusual (the result must match the `ProgressStats` type).
-- Only report activity on watch pages. If the site's home page also matches your selectors, check `window.location.pathname` first (see `miruro.ts`).
+## 4. Register it
 
-### If cover images are protected
+In `src/scraper/sites/index.ts`, import it and add it to `strategies`. That is all the wiring: the content-script matches and manifest `host_permissions` are generated from this array.
 
-If the cover is behind Cloudflare, use AniList. Read the AniList id from the page and ask the background worker. Copy the pattern from `animepahe.ts`: it sends `{ type: "FETCH_ANILIST", anilistId }`, caches the result, and never retries after a failure. If the site's `og:image` already points at a public CDN, just use it (see `reanime.ts`).
+## 5. Fixture and unit test
 
-## Step 4: Register the strategy
-
-In `src/scraper/sites/index.ts`, import it and add it to the `strategies` array:
-
-```ts
-import { mysiteStrategy } from "./mysite";
-
-export const strategies = [
-	// ...existing strategies
-	mysiteStrategy,
-];
-```
-
-That is all the wiring needed. The content script matches and the manifest `host_permissions` are generated from this array.
-
-## Step 5: Add a fixture and a unit test
-
-A **fixture** is a trimmed copy of the page HTML so the test does not need the internet.
-
-1. Create `tests/fixtures/mysite/watch.html.fixture` with only the elements your selectors use (title, episode label, episode list, poster).
-2. Create `src/scraper/sites/mysite.test.ts`:
+1. Create `tests/fixtures/mysite/watch.html.fixture`: a trimmed copy of the page with only the elements your selectors use.
+2. Create `tests/scraper/sites/mysite.test.ts` (model it on `hianime.test.ts`):
 
 ```ts
 import { describe, expect, it } from "vitest";
-import { loadFixture, setBody } from "../../../tests/helpers/dom";
-import { mysiteStrategy } from "./mysite";
+import { mysiteStrategy } from "../../../src/scraper/sites/mysite";
+import { loadFixture, setBody } from "../../helpers/dom";
 
 describe("mysiteStrategy", () => {
-	it("declares its domains and player iframes", () => {
-		expect(mysiteStrategy.domains).toEqual(["mysite.example"]);
-		expect(mysiteStrategy.iframe_src).toEqual(["player.example"]);
-	});
-
 	it("scrapes a full watch page", () => {
 		setBody(loadFixture("mysite/watch.html.fixture"));
 		expect(mysiteStrategy.getAnimeMetadata()).toEqual({
@@ -137,51 +93,34 @@ describe("mysiteStrategy", () => {
 			episode: null,
 		});
 	});
-
-	it("omits episodeName when it repeats the episode label", () => {
-		// build a tiny page where the name equals the label...
-	});
 });
 ```
 
-Test helpers (`tests/helpers/dom.ts`): `setBody`, `setHead`, `visit(url, title)` (changes the URL/title), `loadFixture(path)`, `mockVideo(video, props)`. Look at `hianime.test.ts` for a simple model.
+Helpers in `tests/helpers/dom.ts`: `setBody`, `setHead`, `visit(url, title)`, `loadFixture`, `mockVideo`.
 
-## Step 6: Update the shared tests
+## 6. Update the shared tests
 
-- `src/scraper/sites/index.test.ts` has `expect(strategies).toHaveLength(8)`. Update the number. This test also checks your hostnames, duplicates and empty-page behavior automatically.
-- `tests/e2e/content-script.spec.ts`: add an entry to `SITES` with `id` (matches your fixture folder), `url`, `pageTitle`, `expectedTitle`, `expectedEpisode` (shown as `Episode 3: The Name`, or just `Episode 3` with no name).
-- `tests/health/live-dom.spec.ts`: add an entry to `SITES` with a real episode URL and the title and cover selectors. This weekly job warns us when the site changes its HTML.
+- `tests/scraper/sites/index.test.ts`: change the `toHaveLength(...)` number to the new site count.
+- `tests/e2e/content-script.spec.ts`: add an entry to `SITES` (`id` matches your fixture folder, plus `url`, `pageTitle`, `expectedTitle`, `expectedEpisode` such as `Episode 3: The Name`).
+- `tests/health/live-dom.spec.ts`: add an entry with a real episode URL and the title and cover selectors. This weekly job tells us when the site changes its HTML.
 
-## Step 7: Try it for real
+## 7. Try it
 
-```bash
-bun run dev:chrome      # or use the Docker dev server
-```
-
-Open an episode on the site, then check your Discord status. To see what the extension reads, turn on logs ([how](./troubleshooting.md#how-to-turn-on-logs)). If something looks wrong, the log shows the exact presence payload being sent.
+Run `bun run dev:chrome` (or the Docker dev server), open an episode and check your Discord status. [Turn on logs](./troubleshooting.md#how-to-turn-on-logs) to see exactly what is read and sent.
 
 ## Checklist
 
-Copy this into your PR:
-
-- [ ] `src/scraper/sites/<site>.ts` created, returns `null` safely when elements are missing
-- [ ] Registered in `src/scraper/sites/index.ts`
-- [ ] `tests/fixtures/<site>/watch.html.fixture` added
-- [ ] `src/scraper/sites/<site>.test.ts` added
-- [ ] Strategy count updated in `index.test.ts`
-- [ ] Entry added to `tests/e2e/content-script.spec.ts`
-- [ ] Entry added to `tests/health/live-dom.spec.ts`
-- [ ] `bun run lint:fix`, `bun run typecheck`, `bun run test` pass
+- [ ] Strategy returns `null` safely and is registered in `index.ts`
+- [ ] Fixture, unit test, E2E entry, health entry and site count updated
+- [ ] `bun run validate` passes
 - [ ] Screenshot of the Discord status in the PR
-- [ ] The site is added to the supported-sites list on the website (ask a maintainer if you cannot)
 
 ## Common mistakes
 
 | Mistake | Result |
 | ------- | ------ |
-| Using `https://site.com` in `domains` | Registry test fails |
-| Forgetting the player domain in `iframe_src` | Title shows but no progress bar |
-| Throwing when an element is missing | The content script logs errors and nothing updates |
-| Selectors that match on the home page too | Status shows junk on non-watch pages |
-| Not trimming whitespace | Titles like `" Frieren "` |
-| Forgetting to bump the strategy count in the test | `index.test.ts` fails |
+| `https://site.com` in `domains` | Registry test fails |
+| Player domain missing from `iframe_src` | Title shows but no progress bar |
+| Throwing on a missing element | Nothing updates |
+| Selectors that also match the home page | Junk status on non-watch pages |
+| Not trimming text | Titles like `" Frieren "` |
