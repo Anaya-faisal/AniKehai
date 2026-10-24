@@ -37,3 +37,6 @@ test-results
 .env
 .env.*
 !.env.example
+
+# audit reports
+SECURITY_AUDIT_REPORT.md
