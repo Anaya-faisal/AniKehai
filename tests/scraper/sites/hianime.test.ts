@@ -17,7 +17,7 @@ describe("hianimeStrategy", () => {
 			title: "Bocchi the Rock!",
 			episode: "Episode 4",
 			episodeName: "Four Eyes",
-			coverUrl: "https://hianime.example/p/bocchi.jpg",
+			coverUrl: "https://img.anili.st/p/bocchi.jpg",
 		});
 	});
 
