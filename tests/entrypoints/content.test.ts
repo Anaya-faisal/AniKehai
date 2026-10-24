@@ -87,11 +87,58 @@ describe("on a supported site (metadata strategy)", () => {
 			title: "Bocchi the Rock!",
 			episode: "Episode 4",
 			episodeName: "Four Eyes",
-			coverUrl: "https://hianime.example/p/bocchi.jpg",
+			coverUrl: "https://img.anili.st/p/bocchi.jpg",
 		});
 
 		vi.advanceTimersByTime(TICK * 2);
 		expect(sendMessage).toHaveBeenCalledTimes(3);
+	});
+
+	it("strips control characters and trims the scraped metadata", () => {
+		const bell = String.fromCharCode(7);
+		setBody(
+			`<div class="anisc-detail"><div class="film-name"><a>  Boc${bell}chi the Rock!  </a></div></div>` +
+				'<div class="server-notice">You are watching <b>Episode 4</b></div>',
+		);
+		injectInto("https://hianime.at/watch/bocchi");
+
+		vi.advanceTimersByTime(TICK);
+		expect(sendMessage).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "INFO_UPDATE",
+				title: "Bocchi the Rock!",
+				episode: "Episode 4",
+			}),
+		);
+	});
+
+	it("drops a cover URL that is not served by a trusted image host", () => {
+		setBody(
+			'<div class="anisc-poster"><div class="film-poster"><img src="https://evil.example/track.gif"></div></div>' +
+				'<div class="anisc-detail"><div class="film-name"><a>Bocchi the Rock!</a></div></div>' +
+				'<div class="server-notice">You are watching <b>Episode 4</b></div>',
+		);
+		injectInto("https://hianime.at/watch/bocchi");
+
+		vi.advanceTimersByTime(TICK);
+		expect(sendMessage).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: "INFO_UPDATE",
+				coverUrl: "",
+			}),
+		);
+	});
+
+	it("sends STOPPED when the title is only control characters", () => {
+		const bell = String.fromCharCode(7);
+		setBody(
+			`<div class="anisc-detail"><div class="film-name"><a>${bell}</a></div></div>` +
+				'<div class="server-notice">You are watching <b>Episode 4</b></div>',
+		);
+		injectInto("https://hianime.at/watch/bocchi");
+
+		vi.advanceTimersByTime(TICK);
+		expect(sendMessage).toHaveBeenCalledWith({ type: "STOPPED" });
 	});
 
 	it("sends STOPPED when the page has no anime (e.g. user went home)", () => {
