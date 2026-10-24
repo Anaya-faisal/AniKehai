@@ -1,90 +1,66 @@
 # Troubleshooting
 
-Find your symptom, try the fix. Still stuck? Ask on the [Discord server](https://discord.gg/w9Q7YUrzpn) or open a [bug report](https://github.com/minkxx/AniKehai/issues/new?template=bug_report.md).
+Still stuck? Ask on the [Discord server](https://discord.gg/w9Q7YUrzpn) or open a [bug report](https://github.com/minkxx/AniKehai/issues/new?template=bug_report.md).
 
 ## How to turn on logs
 
-The extension is silent by default. To see what it does:
+The extension is silent by default.
 
-**Chrome**
+- **Chrome / Edge:** open `chrome://extensions` (or `edge://extensions`), turn on Developer mode, click **service worker** under AniKehai, and in the Console run `enable_logs = true`.
+- **Firefox:** open `about:debugging#/runtime/this-firefox`, click **Inspect** next to AniKehai, and in the Console run `enable_logs = true`.
 
-1. Open `chrome://extensions` and turn on Developer mode.
-2. Find AniKehai and click **service worker** (the "Inspect views" link).
-3. In the Console tab, type: `enable_logs = true` and press Enter.
-
-**Firefox**
-
-1. Open `about:debugging#/runtime/this-firefox`.
-2. Click **Inspect** next to AniKehai.
-3. In the Console, type: `enable_logs = true`.
-
-You will see `[INFO]`, `[WARN]` and `[ERROR]` lines, including the exact presence payload sent to Discord. The setting is saved, so it stays on until you run `enable_logs = false`. To see messages from the **content script**, open DevTools (F12) on the streaming site's tab.
-
-Please paste relevant logs (with the token removed) into bug reports.
+You will see `[INFO]`, `[WARN]` and `[ERROR]` lines, including the exact presence payload sent to Discord. The setting is saved; run `enable_logs = false` to stop. Content-script messages appear in DevTools (F12) on the streaming site's tab. Remove your token before pasting logs into a bug report.
 
 ## For users
 
 | Symptom | Likely cause and fix |
 | ------- | -------------------- |
-| Popup shows "Link with Discord" again | Token expired or invalid. Log in again. The extension clears bad tokens automatically. |
-| Popup shows "Tuning in" forever | Not connected to Discord's Gateway. Check your internet and any VPN/firewall blocking `gateway.discord.gg`. Log out and in again. |
-| Nothing on my Discord profile | Make sure **Broadcast to Discord** is ON and Privacy is what you expect. Discord's own *Activity Privacy* setting must allow sharing. Use the same Discord account you linked. |
+| Popup asks to "Link with Discord" again | The token expired or was rejected. Log in again. |
+| Popup shows "Connecting" for a long time | Not connected to Discord's gateway. Check your internet or VPN/firewall (`gateway.discord.gg`), then log out and in. |
+| Nothing on my Discord profile | **Broadcast to Discord** must be on. Discord's own Activity Privacy must allow sharing. Use the Discord account you linked. |
 | Shows "Anime / Private Session" | Privacy mode is on. Turn it off in settings. |
-| No progress bar | The video player's domain is not in the strategy's `iframe_src`, or the video is paused. Report the site. |
-| Wrong or missing cover | The site changed its HTML or blocks images. Report it. A default cover is used as a fallback. |
+| No progress bar | The player's domain is missing from the strategy's `iframe_src`, or the video is paused. Report the site. |
+| Wrong or missing cover | The site changed its HTML or blocks images. A default cover is the fallback. Report it. |
 | Status stays after closing the tab | It clears after about 10 seconds without updates. |
-| Works on one site but not another | That site probably changed its HTML. Check the live health check results, then open a bug report. |
-| Mobile (Kiwi) login stuck | Allow the new tab to finish. Discord redirects to a `127.0.0.1` page that the extension closes by itself. Try again if you closed it early. |
-| Login error message in the popup | Read it: it is Discord's own error (e.g. "access denied" means you pressed Cancel). |
+| Works on one site but not another | That site probably changed its HTML. Open a bug report. |
+| Login stuck on Android / Firefox / Edge | Let the new tab finish: Discord redirects to a `127.0.0.1` page that the extension closes by itself. Try again if you closed it early. |
 
 ## For contributors
-
-### Setup and tooling
 
 | Symptom | Fix |
 | ------- | --- |
 | `Cannot find module '.wxt/tsconfig.json'` | `bunx wxt prepare` |
-| Install fails on Node version | Use Node >= 25.8.2 (the Docker image already does) |
-| `bun: command not found` | Install Bun, then reopen the terminal |
-| Biome complains about everything | `bun run lint:fix`. Check your editor saves with LF endings and tabs. |
+| Install fails on the Node version | Use Node >= 26 (the Docker image already does) |
+| Biome complains about everything | `bun run lint:fix`. Check your editor uses LF endings and tabs. |
 | Hooks do not run | `bunx lefthook install` |
-| Commit rejected by commitlint | Use `type: message`. See [commit messages](./contribution-workflow.md#5-commit-messages). |
-| Dev browser does not open | Load `.output/chrome-mv3-dev` manually (see [manual setup](./setup-manual.md#5-start-the-dev-server)) |
-| Docker file permission problems (Linux) | `export HOST_UID=$(id -u) HOST_GID=$(id -g)` before running compose |
-| Docker is stuck on old dependencies | `bun run docker:clean` then rebuild |
-| Port 3000 busy | `docker compose down` or stop the other app |
-
-### Tests
-
-| Symptom | Fix |
-| ------- | --- |
-| "run `bun run build:chrome` first" in E2E | Use `bun run test:e2e` (it builds first) |
+| Commit rejected | Use `type: message`, see [CONTRIBUTING](../.github/CONTRIBUTING.md#rules). |
+| Dev browser does not open | Load `.output/chrome-mv3-dev` by hand, see [Development](./development.md). |
+| Docker: files owned by root (Linux) | `export HOST_UID=$(id -u) HOST_GID=$(id -g)` before running compose. |
+| Docker: port 3000 busy or stale dependencies | `docker compose down`, or `bun run docker:clean` and rebuild. |
+| E2E: "run `bun run build:chrome` first" | Use `bun run test:e2e`, which builds first. |
 | E2E cannot find Chromium | `bun run test:e2e:install` |
-| E2E popup shows "Tuning in" | Expected. Discord hosts are mapped to localhost in tests. |
-| Test leaks state into another | Use `vi.resetModules()` for module-level caches. Timers: `vi.useFakeTimers()` and restore in `afterEach`. |
-| Coverage threshold failure | Run `bun run test:coverage`, open `coverage/index.html`, add tests for red lines. |
-| Version test fails | `package.json` and `EXTENSION_VERSION` do not match. Make them identical. |
-| `index.test.ts` strategy-count failure | You added or removed a site. Update the `toHaveLength(...)` number. |
-| "domain is contained in another" failure | Your site domain overlaps another site's domain. Use a more specific hostname. |
-| Health check fails for one site | The selector likely broke. Fix it in the strategy and refresh the fixture. If it says skipped, Cloudflare blocked the run. |
+| Coverage below the minimum | `bun run test:coverage`, open `coverage/index.html`, cover the red lines. |
+| Version test fails | The manifest version does not match `package.json`. Bump only `package.json`. |
+| `index.test.ts` count fails | You added or removed a site. Update the `toHaveLength(...)` number. |
+| "domain is shared" or "site and player" failure | Two strategies overlap. Use a more specific hostname. |
+| Health check fails for one site | A selector probably broke. Fix the strategy and refresh the fixture. "Skipped" means Cloudflare blocked the run. |
+| A test leaks state into another | `vi.resetModules()` for module-level caches; restore fake timers in `afterEach`. |
 
-### Debugging a site strategy
+## Debugging a site strategy
 
-1. Open the episode page, press F12, and test your selectors in the console.
-2. Turn on logs and watch for `DOM scraping error`.
-3. Confirm the **player iframe's** domain is in `iframe_src`. Right-click the video → Inspect and check which frame it sits in.
-4. Make sure the page is a *watch* page. Strategies must return `null` elsewhere.
-5. Update the fixture with the new HTML and re-run `bunx vitest run src/scraper/sites/<site>.test.ts`.
+1. Open the episode page (F12) and test your selectors in the console.
+2. Turn on logs and look for `DOM scraping error`.
+3. Check that the **player iframe's** domain is in `iframe_src` (right-click the video, Inspect).
+4. Make sure it is a *watch* page. Strategies must return `null` elsewhere.
+5. Update the fixture and run `bunx vitest run tests/scraper/sites/<site>.test.ts`.
 
-### Debugging Discord
+## Debugging Discord
 
 | Symptom | Check |
 | ------- | ----- |
-| Never reaches READY | Valid `discord_token` in storage? Network/VPN? Logs show `[Gateway] Ready and authenticated!` when OK. |
-| Presence not shown | Logs should show `Sending presence payload`. If not, the update rules (`evaluateDiscordUpdate`) decided nothing changed, or broadcasting is off. |
-| Cover image missing | Look for `[ExternalAssets] failed`. Falls back to `default_cover`. |
-| Reconnect loop | Look at `Reconnecting in Ns`. Backoff grows up to 30 seconds. A `4004` close clears the token and stops. |
+| Never reaches READY | Is there a valid `discord_token` in storage? Network or VPN? Logs show `[Gateway] Ready and authenticated!` when OK. |
+| Presence not shown | Logs should show `Sending presence payload`. If not, nothing changed enough to update, or broadcasting is off. |
+| Cover missing | Look for `[ExternalAssets] failed`. It falls back to `default_cover`. |
+| Reconnect loop | Look for `Reconnecting in Ns` (backoff up to 30 s). Close code `4004` refreshes the token and clears it if that fails. |
 
-## Still stuck?
-
-Open an issue with: what you expected, what happened, your OS and browser, the extension version (bottom of the popup), the site URL, and logs.
+When you open an issue, include what you expected, what happened, OS and browser, extension version (bottom of the popup), the site URL and logs.
